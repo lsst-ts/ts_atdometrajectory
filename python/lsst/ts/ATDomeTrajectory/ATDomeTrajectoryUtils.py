@@ -1,12 +1,17 @@
 import time
 from random import randint
+from enum import Enum
+
 
 class ATDomeTrajectoryConfiguration:
-    self.algorithmFrequency = 0.5
-    self.minDifTomove = 5    #Minimum dist
-    self.updateFrequency = 0.5
 
-    def updateConfiguration(settingsToApply: str):
+    def __init__(self):
+        self.algorithmFrequency = 0.5
+        self.minDifTomove = 5    # Minimum distance to move in degrees
+        self.updateFrequency = 0.5
+        self.algorithm = TrajectoryAlgorithm.AlgorithmA
+
+    def updateConfiguration(self, settingsToApply: str):
         """Update settings according to settingsToApply
         Parameters
         ----------
@@ -14,12 +19,14 @@ class ATDomeTrajectoryConfiguration:
         """
         pass
 
+
 class ATDomePosition:
-    def __init__():
+
+    def __init__(self):
         self.azimuthAngle = 0
         self.newValue = False
 
-    def update(azimuthAngle=None):
+    def update(self, azimuthAngle=None):
         """Update current position and set newValue to True
         Parameters
         ----------
@@ -28,7 +35,7 @@ class ATDomePosition:
         self.azimuthAngle = azimuthAngle if azimuthAngle is not None else self.azimuthAngle
         self.newValue = True
 
-    def getLastValue():
+    def getLastValue(self):
         """Get last value and set lastValue to False
         Returns
         ----------
@@ -38,7 +45,7 @@ class ATDomePosition:
         self.newValue = False
         return lastValue
 
-    def newValue():
+    def newValue(self):
         """Check if there's a new value since last getLastValue
         Returns
         ----------
@@ -46,26 +53,28 @@ class ATDomePosition:
         """
         return self.newValue
 
+
 class ATMountTarget:
 
-    def __init__():
+    def __init__(self):
         self.azimuthAngleTarget = 0
         self.elevationAngleTarget = 0
         self.newValue = False
 
-    def update(azimuthAngleTarget=None, elevationAngleTarget=None):
+    def update(self, azimuthAngleTarget=None, elevationAngleTarget=None):
         """Update current position and set newValue to True
         Parameters
         ----------
         azimuthAngleTarget : New Azimuth target position
         elevationAngleTarget : New Elevation target position
-        
         """
-        self.azimuthAngleTarget = azimuthAngleTarget if azimuthAngleTarget is not None else self.azimuthAngleTarget
-        self.elevationAngleTarget = elevationAngleTarget if azimuthAngleTarget is not None else self.elevationAngleTarget
+        self.azimuthAngleTarget = azimuthAngleTarget if azimuthAngleTarget \
+            is not None else self.azimuthAngleTarget
+        self.elevationAngleTarget = elevationAngleTarget if azimuthAngleTarget \
+            is not None else self.elevationAngleTarget
         self.newValue = True
 
-    def getLastValue():
+    def getLastValue(self):
         """Get last value and set lastValue to False
         Returns
         ----------
@@ -75,7 +84,7 @@ class ATMountTarget:
         self.newValue = False
         return lastValue
 
-    def newValue():
+    def newValue(self):
         """Check if there's a new value since last getLastValue
         Returns
         ----------
@@ -83,15 +92,16 @@ class ATMountTarget:
         """
         return self.newValue
 
-class simulatePointingCommand:
-    def __init__():
+
+class SimulatePointingCommand:
+    def __init__(self):
         self.time = time.time()
         self.azimuth = 0
         self.elevation = 0
         self.timeToCommand = 10
         self.delta = 0.001
 
-    def getData():
+    def getData(self):
         timePassed = self.time - time.time()
         if(timePassed > self.timeToCommand):
             self.time = time.time()
@@ -103,3 +113,7 @@ class simulatePointingCommand:
 
         return self.azimuth, self.elevation
 
+
+class TrajectoryAlgorithm(Enum):
+    AlgorithmA = 1
+    AlgorithmB = 2
