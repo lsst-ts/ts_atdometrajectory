@@ -74,18 +74,18 @@ class ATDomeTrajectoryCsc(salobj.base_csc.BaseCsc):
         else:
             self.algorithm = AlgorithmA()
 
-        asyncio.ensure_future(self.followTrajectoryLoop())
-        asyncio.ensure_future(self.updatePosition())
+        self.followTrajectoryLoopTask = asyncio.ensure_future(self.followTrajectoryLoop())
+        self.updatePositionTask = asyncio.ensure_future(self.updatePosition())
 
-    def end_disable(self):
+    def end_disable(self, id_data):
         if self.algorithmTask and not self.algorithmTask.done():
             self.algorithmTask.cancel()
-        super().end_disable()
+        super().end_disable(id_data)
 
-    def end_standby(self):
+    def end_standby(self, id_data):
         if self.updatePositionTask and not self.updatePositionTask.done():
             self.updatePositionTask.cancel()
-        super().end_standby()
+        super().end_standby(id_data)
 
     async def followTrajectoryLoop(self):
         """If in enable, run algorithm to follow target command from the pointing
