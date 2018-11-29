@@ -53,6 +53,7 @@ class ATDomeTrajectoryCsc(salobj.base_csc.BaseCsc):
         if initial_state not in salobj.base_csc.State:
             raise ValueError(f"intial_state={initial_state} is not a salobj.State enum")
         super().__init__(SALPY_ATDomeTrajectory, index)
+        self.summary_state = salobj.base_csc.State.STANDBY
 
         self.algorithmFrequency = 0.5
         self.configuration = ATDomeTrajectoryConfiguration()
