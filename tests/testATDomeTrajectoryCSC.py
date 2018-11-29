@@ -25,7 +25,7 @@ import contextlib
 import unittest
 from lsst.ts import salobj
 from lsst.ts.salobj.base import AckError
-from lsst.ts.ATDomeTrajectory.ATDomeTracjectoryCSC import ATDomeTracjectoryCsc as theCsc
+from lsst.ts.ATDomeTrajectory.ATDomeTrajectoryCSC import ATDomeTrajectoryCsc as theCsc
 import SALPY_ATDomeTrajectory
 
 
@@ -74,6 +74,7 @@ class CommunicateTestCase(unittest.TestCase):
             self.assertLess(abs(duration - 2), 1.5)  # not clear what this limit should be
         asyncio.get_event_loop().run_until_complete(doit())
 
+    @unittest.skip('reason')
     def test_main(self):
         async def doit():
             """Test if the CSC executable runs
