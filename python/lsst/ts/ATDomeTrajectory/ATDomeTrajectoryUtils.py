@@ -45,7 +45,7 @@ class ATDomePosition:
         self.newValue = False
         return lastValue
 
-    def newValue(self):
+    def isNewValue(self):
         """Check if there's a new value since last getLastValue
         Returns
         ----------
@@ -84,7 +84,7 @@ class ATMountTarget:
         self.newValue = False
         return lastValue
 
-    def newValue(self):
+    def isNewValue(self):
         """Check if there's a new value since last getLastValue
         Returns
         ----------
@@ -98,11 +98,11 @@ class SimulatePointingCommand:
         self.time = time.time()
         self.azimuth = 0
         self.elevation = 0
-        self.timeToCommand = 10
+        self.timeToCommand = 1
         self.delta = 0.001
 
     def getData(self):
-        timePassed = self.time - time.time()
+        timePassed = time.time() - self.time 
         if(timePassed > self.timeToCommand):
             self.time = time.time()
             self.azimuth = randint(-270, 270)

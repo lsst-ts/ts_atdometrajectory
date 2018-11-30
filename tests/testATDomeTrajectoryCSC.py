@@ -27,7 +27,8 @@ from lsst.ts import salobj
 from lsst.ts.salobj.base import AckError
 from lsst.ts.ATDomeTrajectory.ATDomeTrajectoryCSC import ATDomeTrajectoryCsc as theCsc
 import SALPY_ATDomeTrajectory
-
+import SALPY_ATDome
+from random import randint
 
 @contextlib.contextmanager
 def assertRaisesAckError(ack=None, error=None):
@@ -57,7 +58,7 @@ class Harness:
     def __init__(self, initial_state):
         self.csc = theCsc(self.index, initial_state=initial_state)
         self.remote = salobj.Remote(SALPY_ATDomeTrajectory, self.index)
-
+        self.atdome_controller = salobj.Controller(SALPY_ATDome, self.index)
 
 class CommunicateTestCase(unittest.TestCase):
     @unittest.skip('reason')
@@ -98,6 +99,7 @@ class CommunicateTestCase(unittest.TestCase):
 
         asyncio.get_event_loop().run_until_complete(doit())
 
+    @unittest.skip('reason')
     def test_standard_state_transitions(self):
         """Test standard CSC state transitions.
         """
@@ -152,8 +154,8 @@ class CommunicateTestCase(unittest.TestCase):
                     with assertRaisesAckError(
                             ack=harness.remote.salinfo.lib.SAL__CMD_FAILED):
                         await cmd_attr.start(cmd_attr.DataType())
-            # send disable; new state is DISABLED
 
+            # send disable; new state is DISABLED
             cmd_attr = getattr(harness.remote, f"cmd_disable")
             state_coro = harness.remote.evt_summaryState.next(flush=False, timeout=10)
             # this CMD may take some time to complete
@@ -184,6 +186,94 @@ class CommunicateTestCase(unittest.TestCase):
 
         asyncio.get_event_loop().run_until_complete(doit())
 
+    def test_commands_to_atdome(self):
+        """Test commands to ATDome. Firs it goes to enable and then command ATDome when applies
+        """
+        async def doit():
+            harness = Harness(initial_state=salobj.State.STANDBY)
+            commands = ("start", "enable", "disable", "exitControl", "standby")
+            self.assertEqual(harness.csc.summary_state, salobj.State.STANDBY)
+
+            # send start; new state is DISABLED
+            cmd_attr = getattr(harness.remote, f"cmd_start")
+            state_coro = harness.remote.evt_summaryState.next(flush=True, timeout=10)
+            id_ack = await cmd_attr.start(cmd_attr.DataType())
+            state = await state_coro
+            self.assertEqual(id_ack.ack.ack, harness.remote.salinfo.lib.SAL__CMD_COMPLETE)
+            self.assertEqual(id_ack.ack.error, 0)
+            self.assertEqual(harness.csc.summary_state, salobj.State.DISABLED)
+            self.assertEqual(state.summaryState, salobj.State.DISABLED)
+
+            # send enable; new state is ENABLED
+            cmd_attr = getattr(harness.remote, f"cmd_enable")
+            state_coro = harness.remote.evt_summaryState.next(flush=False, timeout=10)
+            id_ack = await cmd_attr.start(cmd_attr.DataType(), timeout=10)
+            state = await state_coro
+            self.assertEqual(id_ack.ack.ack, harness.remote.salinfo.lib.SAL__CMD_COMPLETE)
+            self.assertEqual(id_ack.ack.error, 0)
+            self.assertEqual(harness.csc.summary_state, salobj.State.ENABLED)
+            self.assertEqual(state.summaryState, salobj.State.ENABLED)
+
+            atDomeData = harness.atdome_controller.tel_position.DataType()
+            setattr(atDomeData, f"dropoutOpeningPercentage",100)
+            setattr(atDomeData, f"mainDoorOpeningPercentage",100)
+            setattr(atDomeData, f"azimuthPosition",randint(-270, 270))
+            setattr(atDomeData, f"dropoutOpeningPercentageSet",100)
+            setattr(atDomeData, f"mainDoorOpeningPercentageSet",100)
+            setattr(atDomeData, f"azimuthPositionSet",randint(-270, 270))
+        
+            harness.atdome_controller.tel_position.put(atDomeData)
+
+            # Validate if command is sent
+            command = await asyncio.wait_for(harness.atdome_controller.cmd_moveAzimuth.next(), timeout=1)
+            print(command.data.azimuth)
+            
+            await asyncio.sleep(5)
+
+            setattr(atDomeData, f"dropoutOpeningPercentage",100)
+            setattr(atDomeData, f"mainDoorOpeningPercentage",100)
+            setattr(atDomeData, f"azimuthPosition",randint(-270, 270))
+            setattr(atDomeData, f"dropoutOpeningPercentageSet",100)
+            setattr(atDomeData, f"mainDoorOpeningPercentageSet",100)
+            setattr(atDomeData, f"azimuthPositionSet",randint(-270, 270))
+        
+            harness.atdome_controller.tel_position.put(atDomeData)
+            
+            # Validate if command is sent
+            command = await asyncio.wait_for(harness.atdome_controller.cmd_moveAzimuth.next(), timeout=1)
+            print(command.data.azimuth)
+
+            # send start; new state is DISABLED
+            cmd_attr = getattr(harness.remote, f"cmd_disable")
+            state_coro = harness.remote.evt_summaryState.next(flush=False, timeout=10)
+            # this CMD may take some time to complete
+            id_ack = await cmd_attr.start(cmd_attr.DataType(), timeout=30.)
+            state = await state_coro
+            self.assertEqual(id_ack.ack.ack, harness.remote.salinfo.lib.SAL__CMD_COMPLETE)
+            self.assertEqual(id_ack.ack.error, 0)
+            self.assertEqual(harness.csc.summary_state, salobj.State.DISABLED)
+
+            # send standby; new state is STANDBY
+            cmd_attr = getattr(harness.remote, f"cmd_standby")
+            state_coro = harness.remote.evt_summaryState.next(flush=False, timeout=10)
+            id_ack = await cmd_attr.start(cmd_attr.DataType())
+            state = await state_coro
+            self.assertEqual(id_ack.ack.ack, harness.remote.salinfo.lib.SAL__CMD_COMPLETE)
+            self.assertEqual(id_ack.ack.error, 0)
+            self.assertEqual(harness.csc.summary_state, salobj.State.STANDBY)
+
+            # send exitControl; new state is OFFLINE
+            cmd_attr = getattr(harness.remote, f"cmd_exitControl")
+            state_coro = harness.remote.evt_summaryState.next(flush=False, timeout=10)
+            id_ack = await cmd_attr.start(cmd_attr.DataType())
+            state = await state_coro
+            self.assertEqual(id_ack.ack.ack, harness.remote.salinfo.lib.SAL__CMD_COMPLETE)
+            self.assertEqual(id_ack.ack.error, 0)
+            self.assertEqual(harness.csc.summary_state, salobj.State.OFFLINE)
+
+            await asyncio.wait_for(harness.csc.done_task, 2)
+
+        asyncio.get_event_loop().run_until_complete(doit())
 
 if __name__ == "__main__":
     unittest.main()

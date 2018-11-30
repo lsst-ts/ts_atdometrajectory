@@ -30,21 +30,18 @@ class AlgorithmA(IATDomeTrajectoryAlgorithm):
             mtTarget {ATMountTarget} -- Last target obtained from the pointing
             configuration {ATDomeTrajectoryConfiguration} -- Configuration obtained from a configuration file
         """
-        if(not mtTarget.newValue() and not position.newValue()):
+        if((not mtTarget.isNewValue()) or (not position.isNewValue())):
             return
-
         target = mtTarget.getLastValue()
         position = position.getLastValue()
 
         if(abs(target.azimuthAngleTarget - position.azimuthAngle) < configuration.minDifTomove):
             return
-
-        azimuth = BestPositionCalculator.calculateBestPosition(target, position)
-
+        azimuth = BestPositionCalculator().calculateBestPosition(target, position)
         moveAzimuthTopic = self.ATDomeRemote.cmd_moveAzimuth.DataType()
         moveAzimuthTopic.azimuth = azimuth
-        moveAzimuthTask = self.ATDomeRemote.cmd_moveAzimuth.start(moveAzimuthTopic)  # Move to position
-        await moveAzimuthTask
+        await self.ATDomeRemote.cmd_moveAzimuth.start(moveAzimuthTopic, timeout=0.5)  # Move to position
+        return
 
 
 class BestPositionCalculator:

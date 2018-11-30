@@ -53,13 +53,13 @@ class ATDomeTrajectoryCsc(salobj.base_csc.BaseCsc):
         if initial_state not in salobj.base_csc.State:
             raise ValueError(f"intial_state={initial_state} is not a salobj.State enum")
         super().__init__(SALPY_ATDomeTrajectory, index)
-        self.summary_state = salobj.base_csc.State.STANDBY
+        #self.summary_state = salobj.base_csc.State.STANDBY
 
         self.algorithmFrequency = 0.5
         self.configuration = ATDomeTrajectoryConfiguration()
         self.target = ATMountTarget()
         self.position = ATDomePosition()
-        self.ATDomeController = salobj.Controller(SALPY_ATDome, 0)
+        self.ATDomeRemote = salobj.Remote(SALPY_ATDome, 0)
 
         self.pointingSimulator = SimulatePointingCommand()
 
@@ -77,35 +77,30 @@ class ATDomeTrajectoryCsc(salobj.base_csc.BaseCsc):
         self.followTrajectoryLoopTask = asyncio.ensure_future(self.followTrajectoryLoop())
         self.updatePositionTask = asyncio.ensure_future(self.updatePosition())
 
-    def end_disable(self, id_data):
-        if self.algorithmTask and not self.algorithmTask.done():
-            self.algorithmTask.cancel()
-        super().end_disable(id_data)
-
-    def end_standby(self, id_data):
-        if self.updatePositionTask and not self.updatePositionTask.done():
-            self.updatePositionTask.cancel()
-        super().end_standby(id_data)
-
     async def followTrajectoryLoop(self):
         """If in enable, run algorithm to follow target command from the pointing
         """
         while True:
             if(self.summary_state == salobj.base_csc.State.ENABLED):
-                self.algorithm.followTarget(self.position, self.target, self.configuration)
-            self.algorithmTask = asyncio.ensure_future(asyncio.sleep(self.configuration.algorithmFrequency))
-            await self.algorithmTask
+                try:
+                    await self.algorithm.followTarget(self.position, self.target, self.configuration)
+                except Exception as e:
+                    print(str(e))
+            await asyncio.sleep(self.configuration.algorithmFrequency)
 
     async def updatePosition(self):
         """Update position and target through SAL
         """
         while True:
-            if(self.summary_state == (salobj.base_csc.State.STANDBY, salobj.base_csc.State.ENABLED)):
-                positionData = self.ATDomeController.tel_position.get()
+            if(self.summary_state in [salobj.base_csc.State.STANDBY, salobj.base_csc.State.ENABLED]):
+                try:
+                    positionData = await self.ATDomeRemote.tel_position.next(flush=True, timeout=10)
+                except Exception as e:
+                    positionData = None
                 if(positionData is not None):
                     self.position.update(azimuthAngle=positionData.azimuthPosition)
+
                 azimuth, elevation = self.pointingSimulator.getData()
                 self.target.update(azimuthAngleTarget=azimuth, elevationAngleTarget=elevation)
 
-            self.updatePositionTask = asyncio.ensure_future(asyncio.sleep(self.configuration.updateFrequency))
-            await self.updatePositionTask
+            await asyncio.sleep(self.configuration.updateFrequency)
