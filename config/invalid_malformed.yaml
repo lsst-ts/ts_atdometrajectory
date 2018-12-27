@@ -1,0 +1,4 @@
+# this config file exists purely for unit testing
+algorithm_name = "simple"
+algorithm_config:
+    max_daz: 5  # degrees

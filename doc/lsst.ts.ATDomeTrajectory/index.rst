@@ -6,14 +6,26 @@
 lsst.ts.ATDomeTrajectory
 ########################
 
-.. Paragraph that describes what this Python module does and links to related modules and frameworks.
+ts_ATDomeTrajectory contains the `ATDomeTrajectoryCsc` and suport code,
+including a simple `FakeATDomeCsc`.
 
 .. .. _lsst.ts.ATDomeTrajectory-using:
 
-.. Using lsst.ts.ATDomeTrajectory
-.. ==============================
+Using lsst.ts.ATDomeTrajectory
+==============================
 
-.. toctree linking to topics related to using the module's APIs.
+ts_ATDomeTrajectory requires the following SALPY libraries:
+
+* SALPY_ATDome
+* SALPY_ATDomeTrajectory
+* SALPY_PointingComponent
+
+You can setup and build this package using eups and sconsUtils.
+After setting up the package you can build it and run unit tests by typing ``scons``.
+Building it merely copies ``bin.src/runATDomeTrajectory.py`` into ``bin/`` after tweaking the ``#!`` line.
+
+
+To run the `ATDomeTrajectoryCsc` type ``runATDomeTrajectory.py``
 
 .. .. toctree::
 ..    :maxdepth: 1
@@ -24,7 +36,6 @@ Contributing
 ============
 
 ``lsst.ts.ATDomeTrajectory`` is developed at https://github.com/lsst-ts/ts_ATDomeTrajectory.
-You can find Jira issues for this module under the `ts_ATDomeTrajectory <https://jira.lsstcorp.org/issues/?jql=project%20%3D%20DM%20AND%20component%20%3D%20ts_ATDomeTrajectory>`_ component.
 
 .. If there are topics related to developing this module (rather than using it), link to this from a toctree placed here.
 
