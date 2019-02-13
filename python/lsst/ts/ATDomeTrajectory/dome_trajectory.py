@@ -102,10 +102,10 @@ class ATDomeTrajectory(salobj.BaseCsc):
         if algorithm_config is None:
             algorithm_config = dict()
         self.algorithm = AlgorithmRegistry[algorithm_name](**algorithm_config)
-        settingsApplied_data = self.evt_settingsApplied.DataType()
-        settingsApplied_data.algorithmName = algorithm_name
-        settingsApplied_data.algorithmConfig = yaml.dump(algorithm_config)
-        self.evt_settingsApplied.put(settingsApplied_data)
+        self.evt_settingsApplied.set_put(
+            algorithmName=algorithm_name,
+            algorithmConfig=yaml.dump(algorithm_config),
+        )
 
     def begin_start(self, id_data):
         """Deal with configuration.

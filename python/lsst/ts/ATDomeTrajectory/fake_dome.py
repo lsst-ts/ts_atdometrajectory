@@ -78,9 +78,10 @@ class FakeATDome(salobj.BaseCsc):
                 abs_az_corr = min(abs(az_err), max_az_corr)
                 az_corr = abs_az_corr if az_err >= 0 else -abs_az_corr
                 self.curr_az += az_corr
-                position_data.azimuthPositionSet = self.cmd_az.deg
-                position_data.azimuthPosition = self.curr_az.deg
-            self.tel_position.put(position_data)
+            self.tel_position.set_put(
+                azimuthPositionSet=self.cmd_az.deg,
+                azimuthPosition=self.curr_az.deg,
+            )
             await asyncio.sleep(self.telemetry_interval)
 
     def do_moveShutterDropoutDoor(self, id_data):
