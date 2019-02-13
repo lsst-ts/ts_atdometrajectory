@@ -50,6 +50,16 @@ class ATDomeTrajectory(salobj.BaseCsc):
     initial_simulation_mode : `int` (optional)
         Initial simulation mode. This is provided for unit testing,
         as real CSCs should start up not simulating, the default.
+
+    Notes
+    -----
+    **Simulation Modes**
+
+    Supported simulation modes:
+
+    * 0: regular operation
+    * 1: simulation mode: start a mock ATDome controller and talk to it
+      using SAL.
     """
     def __init__(self, initial_state=salobj.base_csc.State.STANDBY, initial_simulation_mode=0):
         self.dome_cmd_az = None
