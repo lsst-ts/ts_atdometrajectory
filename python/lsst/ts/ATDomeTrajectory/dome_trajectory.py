@@ -131,7 +131,7 @@ class ATDomeTrajectory(salobj.BaseCsc):
         """
         target_azalt = AltAz(az=Angle(f"{current_target.demandAz} deg"),
                              alt=Angle(f"{current_target.demandEl} deg"))
-        if self.target_azalt != target_azalt:
+        if self.target_azalt is None or self.target_azalt != target_azalt:
             self.target_azalt = target_azalt
             self.log.info(f"target_azalt=({self.target_azalt.az.deg}, {self.target_azalt.alt.deg})")
             await self.follow_target()
