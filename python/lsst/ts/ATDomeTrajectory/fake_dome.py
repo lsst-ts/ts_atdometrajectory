@@ -92,11 +92,11 @@ class FakeATDome(salobj.BaseCsc):
         """This command is not supported."""
         raise salobj.ExpectedError("Not implemented")
 
-    def do_stopMotionAllAxis(self, id_data):
+    def do_homeAzimuth(self, id_data):
         """This command is not supported."""
         raise salobj.ExpectedError("Not implemented")
 
-    def do_stopShutter(self, id_data):
+    def do_stopMotion(self, id_data):
         """This command is not supported."""
         raise salobj.ExpectedError("Not implemented")
 
@@ -105,9 +105,5 @@ class FakeATDome(salobj.BaseCsc):
         raise salobj.ExpectedError("Not implemented")
 
     def do_moveShutterMainDoor(self, id_data):
-        """This command is not supported."""
-        raise salobj.ExpectedError("Not implemented")
-
-    def do_stopAzimuth(self, id_data):
         """This command is not supported."""
         raise salobj.ExpectedError("Not implemented")
