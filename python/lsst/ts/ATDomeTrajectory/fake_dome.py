@@ -78,9 +78,10 @@ class FakeATDome(salobj.BaseCsc):
                 abs_az_corr = min(abs(az_err), max_az_corr)
                 az_corr = abs_az_corr if az_err >= 0 else -abs_az_corr
                 self.curr_az += az_corr
-                position_data.azimuthPositionSet = self.cmd_az.deg
-                position_data.azimuthPosition = self.curr_az.deg
-            self.tel_position.put(position_data)
+            self.tel_position.set_put(
+                azimuthPositionSet=self.cmd_az.deg,
+                azimuthPosition=self.curr_az.deg,
+            )
             await asyncio.sleep(self.telemetry_interval)
 
     def do_moveShutterDropoutDoor(self, id_data):
@@ -91,11 +92,11 @@ class FakeATDome(salobj.BaseCsc):
         """This command is not supported."""
         raise salobj.ExpectedError("Not implemented")
 
-    def do_stopMotionAllAxis(self, id_data):
+    def do_homeAzimuth(self, id_data):
         """This command is not supported."""
         raise salobj.ExpectedError("Not implemented")
 
-    def do_stopShutter(self, id_data):
+    def do_stopMotion(self, id_data):
         """This command is not supported."""
         raise salobj.ExpectedError("Not implemented")
 
@@ -104,9 +105,5 @@ class FakeATDome(salobj.BaseCsc):
         raise salobj.ExpectedError("Not implemented")
 
     def do_moveShutterMainDoor(self, id_data):
-        """This command is not supported."""
-        raise salobj.ExpectedError("Not implemented")
-
-    def do_stopAzimuth(self, id_data):
         """This command is not supported."""
         raise salobj.ExpectedError("Not implemented")

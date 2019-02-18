@@ -248,10 +248,10 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
             self.assert_telescope_azalt(harness, target_az_deg, alt_deg)
 
     def set_target_azalt(self, harness, az_deg, alt_deg):
-        current_target_data = harness.pointing_controller.tel_currentTargetStatus.DataType()
-        current_target_data.demandAz = Angle(az_deg, u.deg).to_string(unit=u.deg, sep=":")
-        current_target_data.demandEl = Angle(alt_deg, u.deg).to_string(unit=u.deg, sep=":")
-        harness.pointing_controller.tel_currentTargetStatus.put(current_target_data)
+        harness.pointing_controller.tel_currentTargetStatus.set_put(
+            demandAz=Angle(az_deg, u.deg).to_string(unit=u.deg, sep=":"),
+            demandEl=Angle(alt_deg, u.deg).to_string(unit=u.deg, sep=":"),
+        )
 
 
 if __name__ == "__main__":
