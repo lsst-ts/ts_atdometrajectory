@@ -67,10 +67,6 @@ class FakeATDome(salobj.BaseCsc):
 
     async def move_azimuth_loop(self):
         """Move the dome to the specified azimuth."""
-        position_data = self.tel_position.DataType()
-        position_data.azimuthPositionSet = self.cmd_az.deg
-        position_data.azimuthPosition = self.curr_az.deg
-
         max_az_corr = Angle(abs(self.az_vel * self.telemetry_interval), u.deg)
         while True:
             if self.summary_state == salobj.State.ENABLED and self.cmd_az != self.curr_az:

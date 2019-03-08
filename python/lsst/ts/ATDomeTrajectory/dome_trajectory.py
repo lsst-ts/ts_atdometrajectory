@@ -169,6 +169,5 @@ class ATDomeTrajectory(salobj.BaseCsc):
         desired_dome_az = self.algorithm.desired_dome_az(dome_az=self.dome_cmd_az,
                                                          target_azalt=self.target_azalt)
         if desired_dome_az is not None:
-            moveAzimuth_data = self.dome_remote.cmd_moveAzimuth.DataType()
-            moveAzimuth_data.azimuth = desired_dome_az.deg
-            await self.dome_remote.cmd_moveAzimuth.start(moveAzimuth_data, timeout=1)
+            self.dome_remote.cmd_moveAzimuth.set(azimuth=desired_dome_az.deg)
+            await self.dome_remote.cmd_moveAzimuth.start(timeout=1)

@@ -48,8 +48,6 @@ class FakeDomeTestCase(unittest.TestCase):
             state = await harness.remote.evt_summaryState.next(flush=False, timeout=5)
             self.assertEqual(state.summaryState, salobj.State.ENABLED)
 
-            move_azimuth_data = harness.remote.cmd_moveAzimuth.DataType()
-
             position = await harness.remote.tel_position.next(flush=True, timeout=2)
             ATDomeTrajectory.assert_angles_almost_equal(position.azimuthPosition, 0)
             ATDomeTrajectory.assert_angles_almost_equal(position.azimuthPositionSet, 0)
@@ -61,8 +59,8 @@ class FakeDomeTestCase(unittest.TestCase):
                 predicted_end_time = start_time + predicted_duration
                 safe_moving_end_time = predicted_end_time - harness.csc.telemetry_interval
                 safe_done_end_time = predicted_end_time + harness.csc.telemetry_interval*2
-                move_azimuth_data.azimuth = az
-                await harness.remote.cmd_moveAzimuth.start(move_azimuth_data, timeout=2)
+                harness.remote.cmd_moveAzimuth.set(azimuth=az)
+                await harness.remote.cmd_moveAzimuth.start(timeout=2)
 
                 while True:
                     position = await harness.remote.tel_position.next(flush=True, timeout=2)

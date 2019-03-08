@@ -56,18 +56,17 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
                 self.assertEqual(summaryState_data.summaryState, salobj.State.STANDBY)
                 self.assertIsNone(process.returncode)
 
-                start_data = remote.cmd_start.DataType()
-                start_data.settingsToApply = "default.yaml"
-                await remote.cmd_start.start(start_data, timeout=5)
+                remote.cmd_start.set(settingsToApply="default.yaml")
+                await remote.cmd_start.start(timeout=5)
                 summaryState_data = await remote.evt_summaryState.next(flush=False, timeout=5)
                 self.assertEqual(summaryState_data.summaryState, salobj.State.DISABLED)
                 self.assertIsNone(process.returncode)
 
-                await remote.cmd_standby.start(remote.cmd_standby.DataType(), timeout=5)
+                await remote.cmd_standby.start(timeout=5)
                 summaryState_data = await remote.evt_summaryState.next(flush=False, timeout=5)
                 self.assertEqual(summaryState_data.summaryState, salobj.State.STANDBY)
 
-                await remote.cmd_exitControl.start(remote.cmd_exitControl.DataType(), timeout=5)
+                await remote.cmd_exitControl.start(timeout=5)
                 summaryState_data = await remote.evt_summaryState.next(flush=False, timeout=5)
                 self.assertEqual(summaryState_data.summaryState, salobj.State.OFFLINE)
 
@@ -90,16 +89,14 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
             self.assertIsNone(harness.csc.dome_cmd_az)
 
             # send start; new state is DISABLED
-            start_data = harness.remote.cmd_start.DataType()
-            start_data.settingsToApply = "default.yaml"
-            await harness.remote.cmd_start.start(start_data, timeout=5)
+            harness.remote.cmd_start.set(settingsToApply="default.yaml")
+            await harness.remote.cmd_start.start(timeout=5)
             self.assertEqual(harness.csc.summary_state, salobj.State.DISABLED)
             state = await harness.remote.evt_summaryState.next(flush=False, timeout=5)
             self.assertEqual(state.summaryState, salobj.State.DISABLED)
 
             # send enable; new state is ENABLED
-            enable_data = harness.remote.cmd_enable.DataType()
-            await harness.remote.cmd_enable.start(enable_data, timeout=5)
+            await harness.remote.cmd_enable.start(timeout=5)
             self.assertEqual(harness.csc.summary_state, salobj.State.ENABLED)
             state = await harness.remote.evt_summaryState.next(flush=False, timeout=5)
             self.assertEqual(state.summaryState, salobj.State.ENABLED)
@@ -108,22 +105,19 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
             self.assertEqual(harness.csc.dome_remote.salinfo.index, harness.dome_index)
 
             # send disable; new state is DISABLED
-            disable_data = harness.remote.cmd_disable.DataType()
-            await harness.remote.cmd_disable.start(disable_data, timeout=5)
+            await harness.remote.cmd_disable.start(timeout=5)
             self.assertEqual(harness.csc.summary_state, salobj.State.DISABLED)
             state = await harness.remote.evt_summaryState.next(flush=False, timeout=5)
             self.assertEqual(state.summaryState, salobj.State.DISABLED)
 
             # send standby; new state is STANDBY
-            standby_data = harness.remote.cmd_standby.DataType()
-            await harness.remote.cmd_standby.start(standby_data, timeout=5)
+            await harness.remote.cmd_standby.start(timeout=5)
             self.assertEqual(harness.csc.summary_state, salobj.State.STANDBY)
             state = await harness.remote.evt_summaryState.next(flush=False, timeout=5)
             self.assertEqual(state.summaryState, salobj.State.STANDBY)
 
             # send exitControl; new state is OFFLINE
-            exitControl_data = harness.remote.cmd_exitControl.DataType()
-            await harness.remote.cmd_exitControl.start(exitControl_data, timeout=5)
+            await harness.remote.cmd_exitControl.start(timeout=5)
             self.assertEqual(harness.csc.summary_state, salobj.State.OFFLINE)
             state = await harness.remote.evt_summaryState.next(flush=False, timeout=5)
             self.assertEqual(state.summaryState, salobj.State.OFFLINE)
@@ -160,25 +154,23 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
             self.assertEqual(settings.algorithmName, "simple")
             self.assertEqual(yaml.safe_load(settings.algorithmConfig), dict())
 
-            start_data = harness.remote.cmd_start.DataType()
-
             # missing config file
-            start_data.settingsToApply = "no_such_file.yaml"
+            harness.remote.cmd_start.set(settingsToApply="no_such_file.yaml")
             with salobj.test_utils.assertRaisesAckError():
-                await harness.remote.cmd_start.start(start_data, timeout=5)
+                await harness.remote.cmd_start.start(timeout=5)
 
             # invalid configuration
-            start_data.settingsToApply = "invalid_no_such_algorithm.yaml"
+            harness.remote.cmd_start.set(settingsToApply="invalid_no_such_algorithm.yaml")
             with salobj.test_utils.assertRaisesAckError():
-                await harness.remote.cmd_start.start(start_data, timeout=5)
+                await harness.remote.cmd_start.start(timeout=5)
 
             # invalid configuration
-            start_data.settingsToApply = "invalid_malformed.yaml"
+            harness.remote.cmd_start.set(settingsToApply="invalid_malformed.yaml")
             with salobj.test_utils.assertRaisesAckError():
-                await harness.remote.cmd_start.start(start_data, timeout=5)
+                await harness.remote.cmd_start.start(timeout=5)
 
-            start_data.settingsToApply = "default.yaml"
-            await harness.remote.cmd_start.start(start_data, timeout=5)
+            harness.remote.cmd_start.set(settingsToApply="default.yaml")
+            await harness.remote.cmd_start.start(timeout=5)
             self.assertEqual(harness.csc.summary_state, salobj.State.DISABLED)
             state = await harness.remote.evt_summaryState.next(flush=False, timeout=5)
             self.assertEqual(state.summaryState, salobj.State.DISABLED)
