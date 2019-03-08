@@ -22,24 +22,21 @@
 import asyncio
 import unittest
 
-from astropy.coordinates import Angle
-import astropy.units as u
 import yaml
 
 from lsst.ts import salobj
 from lsst.ts import ATDomeTrajectory
 import SALPY_ATDomeTrajectory
-import SALPY_PointingComponent
 import SALPY_ATDome
+import SALPY_ATMCS
 
 
 class Harness:
     def __init__(self, initial_state):
-        self.dome_index = 1  # match config/default.yaml
-        self.pointing_index = 2  # for Aux Tel
+        self.dome_index = 1  # 1=fixed, 2=portable
         self.dome_csc = ATDomeTrajectory.FakeATDome(index=self.dome_index, initial_state=salobj.State.ENABLED)
         self.dome_remote = salobj.Remote(SALPY_ATDome, index=self.dome_index)
-        self.pointing_controller = salobj.Controller(SALPY_PointingComponent, index=self.pointing_index)
+        self.atmcs_controller = salobj.Controller(SALPY_ATMCS)
         self.csc = ATDomeTrajectory.ATDomeTrajectory(initial_state=initial_state)
         self.remote = salobj.Remote(SALPY_ATDomeTrajectory, index=None)
 
@@ -107,10 +104,8 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
             state = await harness.remote.evt_summaryState.next(flush=False, timeout=5)
             self.assertEqual(state.summaryState, salobj.State.ENABLED)
 
-            # if the dome indices or pointing component indices don't match
-            # then other tests will fail
+            # if the dome indices  don't match then other tests will fail
             self.assertEqual(harness.csc.dome_remote.salinfo.index, harness.dome_index)
-            self.assertEqual(harness.pointing_controller.salinfo.index, harness.pointing_index)
 
             # send disable; new state is DISABLED
             disable_data = harness.remote.cmd_disable.DataType()
@@ -248,10 +243,7 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
             self.assert_telescope_azalt(harness, target_az_deg, alt_deg)
 
     def set_target_azalt(self, harness, az_deg, alt_deg):
-        harness.pointing_controller.tel_currentTargetStatus.set_put(
-            demandAz=Angle(az_deg, u.deg).to_string(unit=u.deg, sep=":"),
-            demandEl=Angle(alt_deg, u.deg).to_string(unit=u.deg, sep=":"),
-        )
+        harness.atmcs_controller.evt_target.set_put(elevation=alt_deg, azimuth=az_deg, force_output=True)
 
 
 if __name__ == "__main__":
