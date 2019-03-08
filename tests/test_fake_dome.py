@@ -27,10 +27,12 @@ from lsst.ts import salobj
 from lsst.ts import ATDomeTrajectory
 import SALPY_ATDome
 
+STD_TIMEOUT = 2  # standard command timeout (sec)
+
 
 class Harness:
     def __init__(self, initial_state):
-        self.dome_index = 1  # match config/default.yaml
+        self.dome_index = 1  # match ts_ATDome
         self.csc = ATDomeTrajectory.FakeATDome(index=self.dome_index, initial_state=salobj.State.ENABLED)
         self.remote = salobj.Remote(SALPY_ATDome, index=self.dome_index)
 
@@ -45,12 +47,10 @@ class FakeDomeTestCase(unittest.TestCase):
         async def doit():
             harness = Harness(initial_state=salobj.State.ENABLED)
             self.assertEqual(harness.csc.summary_state, salobj.State.ENABLED)
-            state = await harness.remote.evt_summaryState.next(flush=False, timeout=5)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=10)
             self.assertEqual(state.summaryState, salobj.State.ENABLED)
 
-            move_azimuth_data = harness.remote.cmd_moveAzimuth.DataType()
-
-            position = await harness.remote.tel_position.next(flush=True, timeout=2)
+            position = await harness.remote.tel_position.next(flush=True, timeout=STD_TIMEOUT)
             ATDomeTrajectory.assert_angles_almost_equal(position.azimuthPosition, 0)
             ATDomeTrajectory.assert_angles_almost_equal(position.azimuthPositionSet, 0)
 
@@ -61,11 +61,11 @@ class FakeDomeTestCase(unittest.TestCase):
                 predicted_end_time = start_time + predicted_duration
                 safe_moving_end_time = predicted_end_time - harness.csc.telemetry_interval
                 safe_done_end_time = predicted_end_time + harness.csc.telemetry_interval*2
-                move_azimuth_data.azimuth = az
-                await harness.remote.cmd_moveAzimuth.start(move_azimuth_data, timeout=2)
+                harness.remote.cmd_moveAzimuth.set(azimuth=az)
+                await harness.remote.cmd_moveAzimuth.start(timeout=STD_TIMEOUT)
 
                 while True:
-                    position = await harness.remote.tel_position.next(flush=True, timeout=2)
+                    position = await harness.remote.tel_position.next(flush=True, timeout=STD_TIMEOUT)
                     ATDomeTrajectory.assert_angles_almost_equal(position.azimuthPositionSet, az)
                     if time.time() < safe_moving_end_time:
                         with self.assertRaises(AssertionError):

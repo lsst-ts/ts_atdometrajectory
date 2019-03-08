@@ -31,7 +31,7 @@ from .algorithms import AlgorithmRegistry
 
 import SALPY_ATDomeTrajectory
 import SALPY_ATDome
-import SALPY_PointingComponent
+import SALPY_ATMCS
 
 
 class ATDomeTrajectory(salobj.BaseCsc):
@@ -72,21 +72,15 @@ class ATDomeTrajectory(salobj.BaseCsc):
 
         An astropy.coordinates.Angle, or None before the first read.
         """
-
-        pointing_index = 2  # for Aux Tel.
-        # Note: if the DomeTrajectory CSC is ever made identical for Aux Tel
-        # and Main Tel then use the same index for both the dome trajectory
-        # CSC and the pointing component CSC
-        self.pointing_remote = salobj.Remote(SALPY_PointingComponent, index=pointing_index,
-                                             include=["currentTargetStatus"])
-        dome_index = 1  # I'm not sure, but I know it's fixed
+        self.atmcs_remote = salobj.Remote(SALPY_ATMCS, include=["target"])
+        dome_index = 1  # match ts_ATDome
         self.dome_remote = salobj.Remote(SALPY_ATDome, index=dome_index, include=["position"])
 
         # Call this after constructing the remotes so the CSC is ready
         # to receive commands when summary state is output
         super().__init__(SALPY_ATDomeTrajectory, index=None, initial_state=initial_state,
                          initial_simulation_mode=initial_simulation_mode)
-        self.pointing_remote.tel_currentTargetStatus.callback = self.update_current_target_status
+        self.atmcs_remote.evt_target.callback = self.update_target
         self.dome_remote.tel_position.callback = self.update_dome_position
         self.config()
 
@@ -133,14 +127,13 @@ class ATDomeTrajectory(salobj.BaseCsc):
             config_data = dict()
         self.config(**config_data)
 
-    async def update_current_target_status(self, current_target):
-        """Callback for currentTargetStatus from PointingComponent.
+    async def update_target(self, target):
+        """Callback for ATMCS target event.
 
         This is triggered in any summary state, but only
         commands a new dome position if enabled.
         """
-        target_azalt = AltAz(az=Angle(f"{current_target.demandAz} deg"),
-                             alt=Angle(f"{current_target.demandEl} deg"))
+        target_azalt = AltAz(az=Angle(target.azimuth, u.deg), alt=Angle(target.elevation, u.deg))
         if self.target_azalt is None or self.target_azalt != target_azalt:
             self.target_azalt = target_azalt
             self.log.info(f"target_azalt=({self.target_azalt.az.deg}, {self.target_azalt.alt.deg})")
@@ -172,6 +165,5 @@ class ATDomeTrajectory(salobj.BaseCsc):
         desired_dome_az = self.algorithm.desired_dome_az(dome_az=self.dome_cmd_az,
                                                          target_azalt=self.target_azalt)
         if desired_dome_az is not None:
-            moveAzimuth_data = self.dome_remote.cmd_moveAzimuth.DataType()
-            moveAzimuth_data.azimuth = desired_dome_az.deg
-            await self.dome_remote.cmd_moveAzimuth.start(moveAzimuth_data, timeout=1)
+            self.dome_remote.cmd_moveAzimuth.set(azimuth=desired_dome_az.deg)
+            await self.dome_remote.cmd_moveAzimuth.start(timeout=1)

@@ -22,24 +22,23 @@
 import asyncio
 import unittest
 
-from astropy.coordinates import Angle
-import astropy.units as u
 import yaml
 
 from lsst.ts import salobj
 from lsst.ts import ATDomeTrajectory
 import SALPY_ATDomeTrajectory
-import SALPY_PointingComponent
 import SALPY_ATDome
+import SALPY_ATMCS
+
+STD_TIMEOUT = 2  # standard command timeout (sec);
 
 
 class Harness:
     def __init__(self, initial_state):
-        self.dome_index = 1  # match config/default.yaml
-        self.pointing_index = 2  # for Aux Tel
+        self.dome_index = 1  # match ts_ATDome
         self.dome_csc = ATDomeTrajectory.FakeATDome(index=self.dome_index, initial_state=salobj.State.ENABLED)
         self.dome_remote = salobj.Remote(SALPY_ATDome, index=self.dome_index)
-        self.pointing_controller = salobj.Controller(SALPY_PointingComponent, index=self.pointing_index)
+        self.atmcs_controller = salobj.Controller(SALPY_ATMCS)
         self.csc = ATDomeTrajectory.ATDomeTrajectory(initial_state=initial_state)
         self.remote = salobj.Remote(SALPY_ATDomeTrajectory, index=None)
 
@@ -59,19 +58,18 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
                 self.assertEqual(summaryState_data.summaryState, salobj.State.STANDBY)
                 self.assertIsNone(process.returncode)
 
-                start_data = remote.cmd_start.DataType()
-                start_data.settingsToApply = "default.yaml"
-                await remote.cmd_start.start(start_data, timeout=5)
-                summaryState_data = await remote.evt_summaryState.next(flush=False, timeout=5)
+                remote.cmd_start.set(settingsToApply="default.yaml")
+                await remote.cmd_start.start(timeout=STD_TIMEOUT)
+                summaryState_data = await remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
                 self.assertEqual(summaryState_data.summaryState, salobj.State.DISABLED)
                 self.assertIsNone(process.returncode)
 
-                await remote.cmd_standby.start(remote.cmd_standby.DataType(), timeout=5)
-                summaryState_data = await remote.evt_summaryState.next(flush=False, timeout=5)
+                await remote.cmd_standby.start(timeout=STD_TIMEOUT)
+                summaryState_data = await remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
                 self.assertEqual(summaryState_data.summaryState, salobj.State.STANDBY)
 
-                await remote.cmd_exitControl.start(remote.cmd_exitControl.DataType(), timeout=5)
-                summaryState_data = await remote.evt_summaryState.next(flush=False, timeout=5)
+                await remote.cmd_exitControl.start(timeout=STD_TIMEOUT)
+                summaryState_data = await remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
                 self.assertEqual(summaryState_data.summaryState, salobj.State.OFFLINE)
 
                 await asyncio.wait_for(process.wait(), 2)
@@ -88,49 +86,42 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
         async def doit():
             harness = Harness(initial_state=salobj.State.STANDBY)
             self.assertEqual(harness.csc.summary_state, salobj.State.STANDBY)
-            state = await harness.remote.evt_summaryState.next(flush=False, timeout=5)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
             self.assertEqual(state.summaryState, salobj.State.STANDBY)
             self.assertIsNone(harness.csc.dome_cmd_az)
 
             # send start; new state is DISABLED
-            start_data = harness.remote.cmd_start.DataType()
-            start_data.settingsToApply = "default.yaml"
-            await harness.remote.cmd_start.start(start_data, timeout=5)
+            harness.remote.cmd_start.set(settingsToApply="default.yaml")
+            await harness.remote.cmd_start.start(timeout=STD_TIMEOUT)
             self.assertEqual(harness.csc.summary_state, salobj.State.DISABLED)
-            state = await harness.remote.evt_summaryState.next(flush=False, timeout=5)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
             self.assertEqual(state.summaryState, salobj.State.DISABLED)
 
             # send enable; new state is ENABLED
-            enable_data = harness.remote.cmd_enable.DataType()
-            await harness.remote.cmd_enable.start(enable_data, timeout=5)
+            await harness.remote.cmd_enable.start(timeout=STD_TIMEOUT)
             self.assertEqual(harness.csc.summary_state, salobj.State.ENABLED)
-            state = await harness.remote.evt_summaryState.next(flush=False, timeout=5)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
             self.assertEqual(state.summaryState, salobj.State.ENABLED)
 
-            # if the dome indices or pointing component indices don't match
-            # then other tests will fail
+            # if the dome indices  don't match then other tests will fail
             self.assertEqual(harness.csc.dome_remote.salinfo.index, harness.dome_index)
-            self.assertEqual(harness.pointing_controller.salinfo.index, harness.pointing_index)
 
             # send disable; new state is DISABLED
-            disable_data = harness.remote.cmd_disable.DataType()
-            await harness.remote.cmd_disable.start(disable_data, timeout=5)
+            await harness.remote.cmd_disable.start(timeout=STD_TIMEOUT)
             self.assertEqual(harness.csc.summary_state, salobj.State.DISABLED)
-            state = await harness.remote.evt_summaryState.next(flush=False, timeout=5)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
             self.assertEqual(state.summaryState, salobj.State.DISABLED)
 
             # send standby; new state is STANDBY
-            standby_data = harness.remote.cmd_standby.DataType()
-            await harness.remote.cmd_standby.start(standby_data, timeout=5)
+            await harness.remote.cmd_standby.start(timeout=STD_TIMEOUT)
             self.assertEqual(harness.csc.summary_state, salobj.State.STANDBY)
-            state = await harness.remote.evt_summaryState.next(flush=False, timeout=5)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
             self.assertEqual(state.summaryState, salobj.State.STANDBY)
 
             # send exitControl; new state is OFFLINE
-            exitControl_data = harness.remote.cmd_exitControl.DataType()
-            await harness.remote.cmd_exitControl.start(exitControl_data, timeout=5)
+            await harness.remote.cmd_exitControl.start(timeout=STD_TIMEOUT)
             self.assertEqual(harness.csc.summary_state, salobj.State.OFFLINE)
-            state = await harness.remote.evt_summaryState.next(flush=False, timeout=5)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
             self.assertEqual(state.summaryState, salobj.State.OFFLINE)
 
             await asyncio.wait_for(harness.csc.done_task, 2)
@@ -143,7 +134,7 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
         async def doit():
             harness = Harness(initial_state=salobj.State.ENABLED)
             self.assertEqual(harness.csc.summary_state, salobj.State.ENABLED)
-            state = await harness.remote.evt_summaryState.next(flush=False, timeout=5)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
             self.assertEqual(state.summaryState, salobj.State.ENABLED)
 
             await self.check_null_moves(harness, alt_deg=0)
@@ -159,35 +150,33 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
         async def doit():
             harness = Harness(initial_state=salobj.State.STANDBY)
             self.assertEqual(harness.csc.summary_state, salobj.State.STANDBY)
-            state = await harness.remote.evt_summaryState.next(flush=False, timeout=5)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
             self.assertEqual(state.summaryState, salobj.State.STANDBY)
-            settings = await harness.remote.evt_settingsApplied.next(flush=False, timeout=5)
+            settings = await harness.remote.evt_settingsApplied.next(flush=False, timeout=STD_TIMEOUT)
             self.assertEqual(settings.algorithmName, "simple")
             self.assertEqual(yaml.safe_load(settings.algorithmConfig), dict())
 
-            start_data = harness.remote.cmd_start.DataType()
-
             # missing config file
-            start_data.settingsToApply = "no_such_file.yaml"
+            harness.remote.cmd_start.set(settingsToApply="no_such_file.yaml")
             with salobj.test_utils.assertRaisesAckError():
-                await harness.remote.cmd_start.start(start_data, timeout=5)
+                await harness.remote.cmd_start.start(timeout=STD_TIMEOUT)
 
             # invalid configuration
-            start_data.settingsToApply = "invalid_no_such_algorithm.yaml"
+            harness.remote.cmd_start.set(settingsToApply="invalid_no_such_algorithm.yaml")
             with salobj.test_utils.assertRaisesAckError():
-                await harness.remote.cmd_start.start(start_data, timeout=5)
+                await harness.remote.cmd_start.start(timeout=STD_TIMEOUT)
 
             # invalid configuration
-            start_data.settingsToApply = "invalid_malformed.yaml"
+            harness.remote.cmd_start.set(settingsToApply="invalid_malformed.yaml")
             with salobj.test_utils.assertRaisesAckError():
-                await harness.remote.cmd_start.start(start_data, timeout=5)
+                await harness.remote.cmd_start.start(timeout=STD_TIMEOUT)
 
-            start_data.settingsToApply = "default.yaml"
-            await harness.remote.cmd_start.start(start_data, timeout=5)
+            harness.remote.cmd_start.set(settingsToApply="default.yaml")
+            await harness.remote.cmd_start.start(timeout=STD_TIMEOUT)
             self.assertEqual(harness.csc.summary_state, salobj.State.DISABLED)
-            state = await harness.remote.evt_summaryState.next(flush=False, timeout=5)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
             self.assertEqual(state.summaryState, salobj.State.DISABLED)
-            settings = await harness.remote.evt_settingsApplied.next(flush=False, timeout=5)
+            settings = await harness.remote.evt_settingsApplied.next(flush=False, timeout=STD_TIMEOUT)
             self.assertEqual(settings.algorithmName, "simple")
             self.assertEqual(yaml.safe_load(settings.algorithmConfig), dict(max_daz=5))
 
@@ -196,11 +185,11 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
     async def assert_dome_az(self, harness, expected_az):
         """Check the ATDome and ATDomeController commanded azimuth.
         """
-        dome_position = await harness.dome_remote.tel_position.next(flush=False, timeout=5)
+        dome_position = await harness.dome_remote.tel_position.next(flush=False, timeout=STD_TIMEOUT)
         ATDomeTrajectory.assert_angles_almost_equal(dome_position.azimuthPositionSet, expected_az)
         # wait for the second telemetry in order to make sure
         # ATDomeTrajectory has time to process the first one
-        dome_position = await harness.dome_remote.tel_position.next(flush=False, timeout=5)
+        dome_position = await harness.dome_remote.tel_position.next(flush=False, timeout=STD_TIMEOUT)
         ATDomeTrajectory.assert_angles_almost_equal(dome_position.azimuthPositionSet, expected_az)
         ATDomeTrajectory.assert_angles_almost_equal(harness.csc.dome_cmd_az, expected_az)
 
@@ -248,10 +237,7 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
             self.assert_telescope_azalt(harness, target_az_deg, alt_deg)
 
     def set_target_azalt(self, harness, az_deg, alt_deg):
-        harness.pointing_controller.tel_currentTargetStatus.set_put(
-            demandAz=Angle(az_deg, u.deg).to_string(unit=u.deg, sep=":"),
-            demandEl=Angle(alt_deg, u.deg).to_string(unit=u.deg, sep=":"),
-        )
+        harness.atmcs_controller.evt_target.set_put(elevation=alt_deg, azimuth=az_deg, force_output=True)
 
 
 if __name__ == "__main__":

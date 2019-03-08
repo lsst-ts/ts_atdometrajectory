@@ -10,6 +10,7 @@ ospl-*.log
 version.py
 
 # Pytest
+.coverage
 tests/.tests
 pytest_session.txt
 .cache/
