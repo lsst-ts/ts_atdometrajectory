@@ -30,7 +30,7 @@ import SALPY_ATDome
 
 class Harness:
     def __init__(self, initial_state):
-        self.dome_index = 1  # match config/default.yaml
+        self.dome_index = 1  # match ts_ATDome
         self.csc = ATDomeTrajectory.FakeATDome(index=self.dome_index, initial_state=salobj.State.ENABLED)
         self.remote = salobj.Remote(SALPY_ATDome, index=self.dome_index)
 

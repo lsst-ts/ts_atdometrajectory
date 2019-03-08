@@ -72,12 +72,8 @@ class ATDomeTrajectory(salobj.BaseCsc):
 
         An astropy.coordinates.Angle, or None before the first read.
         """
-
-        # Note: if the DomeTrajectory CSC is ever made identical for Aux Tel
-        # and Main Tel then use the same index for both the dome trajectory
-        # CSC and the pointing component CSC
         self.atmcs_remote = salobj.Remote(SALPY_ATMCS, include=["target"])
-        dome_index = 1  # I'm not sure, but I know it's fixed
+        dome_index = 1  # match ts_ATDome
         self.dome_remote = salobj.Remote(SALPY_ATDome, index=dome_index, include=["position"])
 
         # Call this after constructing the remotes so the CSC is ready

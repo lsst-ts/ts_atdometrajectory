@@ -33,7 +33,7 @@ import SALPY_ATMCS
 
 class Harness:
     def __init__(self, initial_state):
-        self.dome_index = 1  # 1=fixed, 2=portable
+        self.dome_index = 1  # match ts_ATDome
         self.dome_csc = ATDomeTrajectory.FakeATDome(index=self.dome_index, initial_state=salobj.State.ENABLED)
         self.dome_remote = salobj.Remote(SALPY_ATDome, index=self.dome_index)
         self.atmcs_controller = salobj.Controller(SALPY_ATMCS)
