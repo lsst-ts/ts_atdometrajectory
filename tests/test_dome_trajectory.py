@@ -49,9 +49,9 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
 
     def test_main(self):
         async def doit():
-            """Test that runATDomeTrajectory.py runs the CSC.
+            """Test that run_atdometrajectory.py runs the CSC.
             """
-            process = await asyncio.create_subprocess_exec("runATDomeTrajectory.py")
+            process = await asyncio.create_subprocess_exec("run_atdometrajectory.py")
             try:
                 remote = salobj.Remote(SALPY_ATDomeTrajectory, index=None)
                 summaryState_data = await remote.evt_summaryState.next(flush=False, timeout=20)
