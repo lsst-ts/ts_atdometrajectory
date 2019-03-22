@@ -34,7 +34,7 @@ import SALPY_ATDome
 import SALPY_ATMCS
 
 
-class ATDomeTrajectory(salobj.BaseCsc):
+class ATDomeTrajectory(salobj.ConfigurableCsc):
     """ATDomeTrajectory CSC
 
     ATDomeTrajectory commands the dome to follow the telescope,
@@ -43,6 +43,10 @@ class ATDomeTrajectory(salobj.BaseCsc):
 
     Parameters
     ----------
+    config_dir : `str` (optional)
+        Directory of configuration files, or None for the standard
+        configuration directory (obtained from `get_default_config_dir`).
+        This is provided for unit testing.
     initial_state : `salobj.State` (optional)
         The initial state of the CSC. Typically one of:
         - State.ENABLED if you want the CSC immediately usable.
@@ -61,7 +65,10 @@ class ATDomeTrajectory(salobj.BaseCsc):
     * 1: simulation mode: start a mock ATDome controller and talk to it
       using SAL.
     """
-    def __init__(self, initial_state=salobj.base_csc.State.STANDBY, initial_simulation_mode=0):
+    def __init__(self, config_dir=None, initial_state=salobj.base_csc.State.STANDBY,
+                 initial_simulation_mode=0):
+        schema_path = pathlib.Path(__file__).parents[4].joinpath("schema", "ATDomeTrajectory.yaml")
+
         self.dome_cmd_az = None
         """Commanded dome azimuth, as read from telemetry.
 
@@ -78,54 +85,29 @@ class ATDomeTrajectory(salobj.BaseCsc):
 
         # Call this after constructing the remotes so the CSC is ready
         # to receive commands when summary state is output
-        super().__init__(SALPY_ATDomeTrajectory, index=None, initial_state=initial_state,
+        super().__init__(SALPY_ATDomeTrajectory, schema_path=schema_path, config_dir=config_dir,
+                         index=None, initial_state=initial_state,
                          initial_simulation_mode=initial_simulation_mode)
         self.atmcs_remote.evt_target.callback = self.update_target
         self.dome_remote.evt_azimuthCommandedState.callback = self.commanded_azimuth_state_callback
-        self.config()
 
-    @property
-    def config_dir(self):
-        """Return the path to the directory that holds configuration files.
-        """
-        return pathlib.Path(__file__).parents[4].joinpath("config")
+    @staticmethod
+    def get_config_pkg():
+        return "ts_config_attcs"
 
-    def config(self, algorithm_name="simple", algorithm_config=None):
+    def configure(self, config):
         """Configure this CSC and output the ``settingsApplied`` event.
 
         Parameters
         ----------
-        algorithm_name : `str`
-            Name of algorithm to use for following the telescope.
-            The provided name must be an entry in `AlgorithmRegistry`.
-        algorithm_config : `dict` of (`str`, ``any_safe_type``)
-            Configuration for the algorithm; see the algorithm for details.
-            ``any_safe_type`` means any type that can be returned by
-            ``yaml.safe_load``.
+        config : `types.SimpleNamespace`
+            Configuration, as described by ``schema/ATDomeTrajectory.yaml``
         """
-        if algorithm_config is None:
-            algorithm_config = dict()
-        self.algorithm = AlgorithmRegistry[algorithm_name](**algorithm_config)
+        self.algorithm = AlgorithmRegistry[config.algorithm_name](**config.algorithm_config)
         self.evt_settingsApplied.set_put(
-            algorithmName=algorithm_name,
-            algorithmConfig=yaml.dump(algorithm_config),
+            algorithmName=config.algorithm_name,
+            algorithmConfig=yaml.dump(config.algorithm_config),
         )
-
-    def begin_start(self, id_data):
-        """Deal with configuration.
-
-        This will be moved to BaseCsc at some point.
-        """
-        config_file_name = id_data.data.settingsToApply
-        if config_file_name:
-            config_path = self.config_dir.joinpath(config_file_name)
-            if not config_path.is_file():
-                raise salobj.ExpectedError(f"Cannot find config file {config_path!s}")
-            with open(config_path, "r") as config_file:
-                config_data = yaml.safe_load(config_file)
-        else:
-            config_data = dict()
-        self.config(**config_data)
 
     async def update_target(self, target):
         """Callback for ATMCS target event.
