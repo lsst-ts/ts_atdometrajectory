@@ -72,7 +72,7 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
                 summaryState_data = await remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
                 self.assertEqual(summaryState_data.summaryState, salobj.State.OFFLINE)
 
-                await asyncio.wait_for(process.wait(), 2)
+                await asyncio.wait_for(process.wait(), 5)
             except Exception:
                 if process.returncode is None:
                     process.terminate()
