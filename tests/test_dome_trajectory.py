@@ -137,12 +137,17 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
             state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
             self.assertEqual(state.summaryState, salobj.State.ENABLED)
 
-            await self.check_null_moves(harness, alt_deg=0)
+            az_cmd_state = await harness.dome_remote.evt_azimuthCommandedState.next(flush=False,
+                                                                                    timeout=STD_TIMEOUT)
+            self.assertEqual(az_cmd_state.commandedState,
+                             SALPY_ATDome.ATDome_shared_AzimuthCommandedState_Unknown)
 
             max_daz_deg = harness.csc.algorithm.max_daz.deg
             for az_deg in (max_daz_deg + 0.001, 180, -0.001):
                 with self.subTest(az_deg=az_deg):
                     await self.check_move(harness, az_deg, alt_deg=0)
+
+            await self.check_null_moves(harness, alt_deg=0)
 
         asyncio.get_event_loop().run_until_complete(doit())
 
@@ -152,6 +157,7 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
             self.assertEqual(harness.csc.summary_state, salobj.State.STANDBY)
             state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
             self.assertEqual(state.summaryState, salobj.State.STANDBY)
+
             settings = await harness.remote.evt_settingsApplied.next(flush=False, timeout=STD_TIMEOUT)
             self.assertEqual(settings.algorithmName, "simple")
             self.assertEqual(yaml.safe_load(settings.algorithmConfig), dict())
@@ -182,18 +188,22 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
 
         asyncio.get_event_loop().run_until_complete(doit())
 
-    async def assert_dome_az(self, harness, expected_az):
+    async def assert_dome_az(self, harness, expected_az, move_expected):
         """Check the ATDome and ATDomeController commanded azimuth.
         """
-        dome_position = await harness.dome_remote.tel_position.next(flush=False, timeout=STD_TIMEOUT)
-        ATDomeTrajectory.assert_angles_almost_equal(dome_position.azimuthPositionSet, expected_az)
-        # wait for the second telemetry in order to make sure
-        # ATDomeTrajectory has time to process the first one
-        dome_position = await harness.dome_remote.tel_position.next(flush=False, timeout=STD_TIMEOUT)
-        ATDomeTrajectory.assert_angles_almost_equal(dome_position.azimuthPositionSet, expected_az)
-        ATDomeTrajectory.assert_angles_almost_equal(harness.csc.dome_cmd_az, expected_az)
+        if move_expected:
+            az_cmd_state = await harness.dome_remote.evt_azimuthCommandedState.next(flush=False,
+                                                                                    timeout=STD_TIMEOUT)
+            az_cmd_state = harness.dome_remote.evt_azimuthCommandedState.get()
+            self.assertEqual(az_cmd_state.commandedState,
+                             SALPY_ATDome.ATDome_shared_AzimuthCommandedState_GoToPosition)
+            ATDomeTrajectory.assert_angles_almost_equal(az_cmd_state.azimuth, expected_az)
+        else:
+            with self.assertRaises(asyncio.TimeoutError):
+                await harness.dome_remote.evt_azimuthCommandedState.next(flush=False,
+                                                                         timeout=0.2)
 
-    def assert_telescope_azalt(self, harness, expected_az, expected_alt):
+    def assert_target_azalt(self, harness, expected_az, expected_alt):
         ATDomeTrajectory.assert_angles_almost_equal(harness.csc.target_azalt.az, expected_az)
         ATDomeTrajectory.assert_angles_almost_equal(harness.csc.target_azalt.alt, expected_alt)
 
@@ -222,9 +232,9 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
         if abs(daz_dome_deg) <= max_daz_deg:
             raise ValueError(f"daz_dome_deg={daz_dome_deg} must be > max_daz_deg={max_daz_deg}")
 
-        self.set_target_azalt(harness, az_deg, alt_deg)
-        await self.assert_dome_az(harness, az_deg)
-        self.assert_telescope_azalt(harness, az_deg, alt_deg)
+        harness.atmcs_controller.evt_target.set_put(elevation=alt_deg, azimuth=az_deg, force_output=True)
+        await self.assert_dome_az(harness, az_deg, move_expected=True)
+        self.assert_target_azalt(harness, az_deg, alt_deg)
         await self.check_null_moves(harness, alt_deg)
 
     async def check_null_moves(self, harness, alt_deg):
@@ -232,12 +242,10 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
         max_daz_deg = harness.csc.algorithm.max_daz.deg
         no_move_daz_deg = max_daz_deg - 0.0001
         for target_az_deg in (az_deg - no_move_daz_deg, az_deg + no_move_daz_deg, az_deg):
-            self.set_target_azalt(harness, target_az_deg, alt_deg)
-            await self.assert_dome_az(harness, az_deg)
-            self.assert_telescope_azalt(harness, target_az_deg, alt_deg)
-
-    def set_target_azalt(self, harness, az_deg, alt_deg):
-        harness.atmcs_controller.evt_target.set_put(elevation=alt_deg, azimuth=az_deg, force_output=True)
+            harness.atmcs_controller.evt_target.set_put(elevation=alt_deg, azimuth=target_az_deg,
+                                                        force_output=True)
+            await self.assert_dome_az(harness, az_deg, move_expected=False)
+            self.assert_target_azalt(harness, target_az_deg, alt_deg)
 
 
 if __name__ == "__main__":

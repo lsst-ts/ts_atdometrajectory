@@ -74,14 +74,14 @@ class ATDomeTrajectory(salobj.BaseCsc):
         """
         self.atmcs_remote = salobj.Remote(SALPY_ATMCS, include=["target"])
         dome_index = 1  # match ts_ATDome
-        self.dome_remote = salobj.Remote(SALPY_ATDome, index=dome_index, include=["position"])
+        self.dome_remote = salobj.Remote(SALPY_ATDome, index=dome_index, include=["azimuthCommandedState"])
 
         # Call this after constructing the remotes so the CSC is ready
         # to receive commands when summary state is output
         super().__init__(SALPY_ATDomeTrajectory, index=None, initial_state=initial_state,
                          initial_simulation_mode=initial_simulation_mode)
         self.atmcs_remote.evt_target.callback = self.update_target
-        self.dome_remote.tel_position.callback = self.update_dome_position
+        self.dome_remote.evt_azimuthCommandedState.callback = self.commanded_azimuth_state_callback
         self.config()
 
     @property
@@ -139,17 +139,19 @@ class ATDomeTrajectory(salobj.BaseCsc):
             self.log.info(f"target_azalt=({self.target_azalt.az.deg}, {self.target_azalt.alt.deg})")
             await self.follow_target()
 
-    async def update_dome_position(self, dome_position):
-        """Callback for position from ATDome.
+    async def commanded_azimuth_state_callback(self, state):
+        """Callback for the ATDome commandedAzimuthState event.
 
         This is triggered in any summary state, but only
         commands a new dome position if enabled.
         """
-        dome_az = Angle(dome_position.azimuthPositionSet, u.deg)
-        if self.dome_cmd_az != dome_az:
-            self.dome_cmd_az = dome_az
+        if state.commandedState != SALPY_ATDome.ATDome_shared_AzimuthCommandedState_GoToPosition:
+            self.dome_cmd_az = None
+            self.log.info(f"dome_cmd_az=nan")
+        else:
+            self.dome_cmd_az = Angle(state.azimuth, u.deg)
             self.log.info(f"dome_cmd_az={self.dome_cmd_az.deg}")
-            await self.follow_target()
+        await self.follow_target()
 
     async def follow_target(self):
         """Send the dome to a new position, if appropriate.
@@ -159,11 +161,13 @@ class ATDomeTrajectory(salobj.BaseCsc):
         """
         if self.summary_state != salobj.State.ENABLED:
             return
-        if None in (self.target_azalt, self.dome_cmd_az):
+        if self.target_azalt is None:
             return
-
-        desired_dome_az = self.algorithm.desired_dome_az(dome_az=self.dome_cmd_az,
-                                                         target_azalt=self.target_azalt)
+        if self.dome_cmd_az is None:
+            desired_dome_az = self.target_azalt.az
+        else:
+            desired_dome_az = self.algorithm.desired_dome_az(dome_az=self.dome_cmd_az,
+                                                             target_azalt=self.target_azalt)
         if desired_dome_az is not None:
             self.dome_remote.cmd_moveAzimuth.set(azimuth=desired_dome_az.deg)
             await self.dome_remote.cmd_moveAzimuth.start(timeout=1)
