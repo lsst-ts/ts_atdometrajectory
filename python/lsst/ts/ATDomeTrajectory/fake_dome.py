@@ -21,6 +21,7 @@
 __all__ = ["FakeATDome"]
 
 import asyncio
+import math
 
 from astropy.coordinates import Angle
 import astropy.units as u
@@ -34,7 +35,11 @@ import SALPY_ATDome
 class FakeATDome(salobj.BaseCsc):
     """A very limited fake ATDome CSC
 
-    It receives the ``moveAzimuth`` command and outputs ``position`` telemetry.
+    It receives the ``moveAzimuth`` command and outputs:
+
+    * ``azimuthCommandedState`` event
+    * ``position`` telemetry.
+
     It does not enforce motion limits.
 
     Parameters
@@ -53,10 +58,19 @@ class FakeATDome(salobj.BaseCsc):
         self.telemetry_interval = 0.2  # seconds
         self.move_azimuth_task = None
 
+    async def start(self, initial_simulation_mode):
+        await super().start(initial_simulation_mode=initial_simulation_mode)
+        self.evt_azimuthCommandedState.set_put(
+            commandedState=SALPY_ATDome.ATDome_shared_AzimuthCommandedState_Unknown,
+            azimuth=math.nan, force_output=True)
+
     def do_moveAzimuth(self, id_data):
         """Support the moveAzimuth command."""
         self.assert_enabled("moveAzimuth")
         self.cmd_az = Angle(id_data.data.azimuth, u.deg)
+        self.evt_azimuthCommandedState.set_put(
+            commandedState=SALPY_ATDome.ATDome_shared_AzimuthCommandedState_GoToPosition,
+            azimuth=id_data.data.azimuth, force_output=True)
 
     def report_summary_state(self):
         super().report_summary_state()
@@ -75,7 +89,6 @@ class FakeATDome(salobj.BaseCsc):
                 az_corr = abs_az_corr if az_err >= 0 else -abs_az_corr
                 self.curr_az += az_corr
             self.tel_position.set_put(
-                azimuthPositionSet=self.cmd_az.deg,
                 azimuthPosition=self.curr_az.deg,
             )
             await asyncio.sleep(self.telemetry_interval)

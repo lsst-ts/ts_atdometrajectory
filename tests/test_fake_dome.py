@@ -50,9 +50,13 @@ class FakeDomeTestCase(unittest.TestCase):
             state = await harness.remote.evt_summaryState.next(flush=False, timeout=10)
             self.assertEqual(state.summaryState, salobj.State.ENABLED)
 
+            az_cmd_state = await harness.remote.evt_azimuthCommandedState.next(flush=False,
+                                                                               timeout=STD_TIMEOUT)
+            self.assertEqual(az_cmd_state.commandedState,
+                             SALPY_ATDome.ATDome_shared_AzimuthCommandedState_Unknown)
+
             position = await harness.remote.tel_position.next(flush=True, timeout=STD_TIMEOUT)
             ATDomeTrajectory.assert_angles_almost_equal(position.azimuthPosition, 0)
-            ATDomeTrajectory.assert_angles_almost_equal(position.azimuthPositionSet, 0)
 
             for az in (3, -1):
                 predicted_duration = abs(az - position.azimuthPosition)/harness.csc.az_vel
@@ -64,9 +68,14 @@ class FakeDomeTestCase(unittest.TestCase):
                 harness.remote.cmd_moveAzimuth.set(azimuth=az)
                 await harness.remote.cmd_moveAzimuth.start(timeout=STD_TIMEOUT)
 
+                az_cmd_state = await harness.remote.evt_azimuthCommandedState.next(flush=False,
+                                                                                   timeout=STD_TIMEOUT)
+                self.assertEqual(az_cmd_state.commandedState,
+                                 SALPY_ATDome.ATDome_shared_AzimuthCommandedState_GoToPosition)
+                ATDomeTrajectory.assert_angles_almost_equal(az_cmd_state.azimuth, az)
+
                 while True:
                     position = await harness.remote.tel_position.next(flush=True, timeout=STD_TIMEOUT)
-                    ATDomeTrajectory.assert_angles_almost_equal(position.azimuthPositionSet, az)
                     if time.time() < safe_moving_end_time:
                         with self.assertRaises(AssertionError):
                             ATDomeTrajectory.assert_angles_almost_equal(position.azimuthPosition, az)
