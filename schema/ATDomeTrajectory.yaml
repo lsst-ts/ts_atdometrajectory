@@ -1,0 +1,36 @@
+$schema: http://json-schema.org/draft-07/schema#
+$id: https://github.com/lsst-ts/ts_ATDomeTrajectory/blob/master/schema/ATDomeTrajectory.yaml
+# title must end with one or more spaces followed by the schema version, which must begin with "v"
+title: ATDomeTrajectory v1
+description: Schema for ATDomeTrajectory configuration files
+type: object
+properties:
+  algorithm_name:
+    type: string
+    enum:
+    - simple
+    default: simple
+  algorithm_config:
+    type: object
+allOf:
+# For each supported algorithm_name add a new if/then case below.
+# Warning: set the default values for each case at the algorithm_config level
+# (rather than deeper down on properties within algorithm_config),
+# so users can omit algorithm_config and still get proper defaults.
+- if:
+    properties:
+      algorithm_name:
+        const: simple
+  then:
+    properties:
+      algorithm_config:
+        properties:
+          max_daz:
+            type: number
+        required:
+        - max_daz
+        default:
+          max_daz: 5
+        additionalProperties: false
+additionalProperties: false
+
