@@ -163,7 +163,7 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
             desired_config_dir = pathlib.Path(desird_config_pkg_dir) / "ATDomeTrajectory/v1"
             self.assertEqual(harness.csc.get_config_pkg(), desired_config_pkg_name)
             self.assertEqual(harness.csc.config_dir, desired_config_dir)
-            harness.csc.do_exitControl(salobj.CommandIdData(cmd_id=1, data=None))
+            await harness.csc.do_exitControl(salobj.CommandIdData(cmd_id=1, data=None))
             await asyncio.wait_for(harness.csc.done_task, timeout=5)
 
         asyncio.get_event_loop().run_until_complete(doit())
