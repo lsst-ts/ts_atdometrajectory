@@ -32,7 +32,8 @@ import SALPY_ATDomeTrajectory
 import SALPY_ATDome
 import SALPY_ATMCS
 
-STD_TIMEOUT = 2  # standard command timeout (sec);
+STD_TIMEOUT = 2  # standard command timeout (sec)
+LONG_TIMEOUT = 20  # time limit for starting a SAL component (sec)
 TEST_CONFIG_DIR = pathlib.Path(__file__).parents[1].joinpath("tests", "data", "config")
 
 
@@ -57,7 +58,7 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
             process = await asyncio.create_subprocess_exec("run_atdometrajectory.py")
             try:
                 remote = salobj.Remote(SALPY_ATDomeTrajectory, index=None)
-                summaryState_data = await remote.evt_summaryState.next(flush=False, timeout=20)
+                summaryState_data = await remote.evt_summaryState.next(flush=False, timeout=LONG_TIMEOUT)
                 self.assertEqual(summaryState_data.summaryState, salobj.State.STANDBY)
                 self.assertIsNone(process.returncode)
 
@@ -88,7 +89,7 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
         async def doit():
             harness = Harness(initial_state=salobj.State.STANDBY)
             self.assertEqual(harness.csc.summary_state, salobj.State.STANDBY)
-            state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=LONG_TIMEOUT)
             self.assertEqual(state.summaryState, salobj.State.STANDBY)
             self.assertIsNone(harness.csc.dome_cmd_az)
 
@@ -135,7 +136,7 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
         async def doit():
             harness = Harness(initial_state=salobj.State.ENABLED)
             self.assertEqual(harness.csc.summary_state, salobj.State.ENABLED)
-            state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=LONG_TIMEOUT)
             self.assertEqual(state.summaryState, salobj.State.ENABLED)
 
             az_cmd_state = await harness.dome_remote.evt_azimuthCommandedState.next(flush=False,
@@ -172,7 +173,7 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
         async def doit():
             harness = Harness(initial_state=salobj.State.STANDBY, config_dir=TEST_CONFIG_DIR)
             self.assertEqual(harness.csc.summary_state, salobj.State.STANDBY)
-            state = await harness.remote.evt_summaryState.next(flush=False, timeout=20)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=LONG_TIMEOUT)
             self.assertEqual(state.summaryState, salobj.State.STANDBY)
 
             for bad_config_name in ("no_such_file.yaml",
