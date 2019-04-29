@@ -28,6 +28,7 @@ from lsst.ts import ATDomeTrajectory
 import SALPY_ATDome
 
 STD_TIMEOUT = 2  # standard command timeout (sec)
+LONG_TIMEOUT = 20  # time to start a SAL component (sec)
 
 
 class Harness:
@@ -47,7 +48,7 @@ class FakeDomeTestCase(unittest.TestCase):
         async def doit():
             harness = Harness(initial_state=salobj.State.ENABLED)
             self.assertEqual(harness.csc.summary_state, salobj.State.ENABLED)
-            state = await harness.remote.evt_summaryState.next(flush=False, timeout=10)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=LONG_TIMEOUT)
             self.assertEqual(state.summaryState, salobj.State.ENABLED)
 
             az_cmd_state = await harness.remote.evt_azimuthCommandedState.next(flush=False,

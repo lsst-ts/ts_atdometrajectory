@@ -95,7 +95,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
     def get_config_pkg():
         return "ts_config_attcs"
 
-    def configure(self, config):
+    async def configure(self, config):
         """Configure this CSC and output the ``settingsApplied`` event.
 
         Parameters
