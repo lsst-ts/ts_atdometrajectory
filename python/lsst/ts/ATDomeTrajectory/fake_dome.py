@@ -29,8 +29,6 @@ import astropy.units as u
 from lsst.ts import salobj
 from .utils import angle_diff
 
-import SALPY_ATDome
-
 
 class FakeATDome(salobj.BaseCsc):
     """A very limited fake ATDome CSC
@@ -51,32 +49,35 @@ class FakeATDome(salobj.BaseCsc):
         as real CSCs should start up in `State.STANDBY`, the default.
     """
     def __init__(self, index, initial_state):
-        super().__init__(SALPY_ATDome, index=index, initial_state=initial_state)
+        super().__init__(name="ATDome", index=index, initial_state=initial_state)
         self.curr_az = Angle(0, u.deg)
         self.cmd_az = Angle(0, u.deg)
         self.az_vel = 3  # deg/sec
         self.telemetry_interval = 0.2  # seconds
-        self.move_azimuth_task = None
+        self.move_azimuth_task = asyncio.Future()
 
-    async def start(self, initial_simulation_mode):
-        await super().start(initial_simulation_mode=initial_simulation_mode)
+    async def start(self):
+        await super().start()
         self.evt_azimuthCommandedState.set_put(
-            commandedState=SALPY_ATDome.ATDome_shared_AzimuthCommandedState_Unknown,
+            commandedState=1,  # 1 = Unknown
             azimuth=math.nan, force_output=True)
 
-    def do_moveAzimuth(self, id_data):
+    async def close_tasks(self):
+        self.move_azimuth_task.cancel()
+
+    def do_moveAzimuth(self, data):
         """Support the moveAzimuth command."""
         self.assert_enabled("moveAzimuth")
-        self.cmd_az = Angle(id_data.data.azimuth, u.deg)
+        self.cmd_az = Angle(data.azimuth, u.deg)
         self.evt_azimuthCommandedState.set_put(
-            commandedState=SALPY_ATDome.ATDome_shared_AzimuthCommandedState_GoToPosition,
-            azimuth=id_data.data.azimuth, force_output=True)
+            commandedState=2,  # 2 = GoToPosition
+            azimuth=data.azimuth, force_output=True)
 
     def report_summary_state(self):
         super().report_summary_state()
         if self.summary_state in (salobj.State.DISABLED, salobj.State.ENABLED):
             self.move_azimuth_task = asyncio.ensure_future(self.move_azimuth_loop())
-        elif self.move_azimuth_task and not self.move_azimuth_task.done():
+        elif not self.move_azimuth_task.done():
             self.move_azimuth_task.cancel()
 
     async def move_azimuth_loop(self):
@@ -93,26 +94,26 @@ class FakeATDome(salobj.BaseCsc):
             )
             await asyncio.sleep(self.telemetry_interval)
 
-    def do_moveShutterDropoutDoor(self, id_data):
+    def do_moveShutterDropoutDoor(self, data):
         """This command is not supported."""
         raise salobj.ExpectedError("Not implemented")
 
-    def do_closeShutter(self, id_data):
+    def do_closeShutter(self, data):
         """This command is not supported."""
         raise salobj.ExpectedError("Not implemented")
 
-    def do_homeAzimuth(self, id_data):
+    def do_homeAzimuth(self, data):
         """This command is not supported."""
         raise salobj.ExpectedError("Not implemented")
 
-    def do_stopMotion(self, id_data):
+    def do_stopMotion(self, data):
         """This command is not supported."""
         raise salobj.ExpectedError("Not implemented")
 
-    def do_openShutter(self, id_data):
+    def do_openShutter(self, data):
         """This command is not supported."""
         raise salobj.ExpectedError("Not implemented")
 
-    def do_moveShutterMainDoor(self, id_data):
+    def do_moveShutterMainDoor(self, data):
         """This command is not supported."""
         raise salobj.ExpectedError("Not implemented")
