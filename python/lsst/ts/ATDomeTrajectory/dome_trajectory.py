@@ -29,10 +29,6 @@ import yaml
 from lsst.ts import salobj
 from .algorithms import AlgorithmRegistry
 
-import SALPY_ATDomeTrajectory
-import SALPY_ATDome
-import SALPY_ATMCS
-
 
 class ATDomeTrajectory(salobj.ConfigurableCsc):
     """ATDomeTrajectory CSC
@@ -68,26 +64,27 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
     def __init__(self, config_dir=None, initial_state=salobj.base_csc.State.STANDBY,
                  initial_simulation_mode=0):
         schema_path = pathlib.Path(__file__).parents[4].joinpath("schema", "ATDomeTrajectory.yaml")
+        super().__init__(name="ATDomeTrajectory", schema_path=schema_path, config_dir=config_dir,
+                         index=None, initial_state=initial_state,
+                         initial_simulation_mode=initial_simulation_mode)
 
         self.dome_cmd_az = None
         """Commanded dome azimuth, as read from telemetry.
 
         An astropy.coordinates.Angle, or None before the first read.
         """
+
         self.target_azalt = None
         """Telescope target azimuth, as read from telemetry.
 
         An astropy.coordinates.Angle, or None before the first read.
         """
-        self.atmcs_remote = salobj.Remote(SALPY_ATMCS, include=["target"])
-        dome_index = 1  # match ts_ATDome
-        self.dome_remote = salobj.Remote(SALPY_ATDome, index=dome_index, include=["azimuthCommandedState"])
 
-        # Call this after constructing the remotes so the CSC is ready
-        # to receive commands when summary state is output
-        super().__init__(SALPY_ATDomeTrajectory, schema_path=schema_path, config_dir=config_dir,
-                         index=None, initial_state=initial_state,
-                         initial_simulation_mode=initial_simulation_mode)
+        self.atmcs_remote = salobj.Remote(domain=self.domain, name="ATMCS", index=0, include=["target"])
+        dome_index = 1  # match ts_ATDome
+        self.dome_remote = salobj.Remote(domain=self.domain, name="ATDome", index=dome_index,
+                                         include=["azimuthCommandedState"])
+
         self.atmcs_remote.evt_target.callback = self.update_target
         self.dome_remote.evt_azimuthCommandedState.callback = self.commanded_azimuth_state_callback
 
@@ -127,7 +124,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         This is triggered in any summary state, but only
         commands a new dome position if enabled.
         """
-        if state.commandedState != SALPY_ATDome.ATDome_shared_AzimuthCommandedState_GoToPosition:
+        if state.commandedState != 2:  # 1 is GoToPosition
             self.dome_cmd_az = None
             self.log.info(f"dome_cmd_az=nan")
         else:
