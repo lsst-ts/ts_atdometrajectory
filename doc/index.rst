@@ -47,3 +47,6 @@ Python API reference
 .. automodapi:: lsst.ts.ATDomeTrajectory
    :no-main-docstr:
    :no-inheritance-diagram:
+.. automodapi:: lsst.ts.ATDomeTrajectory.algorithms
+   :no-main-docstr:
+   :no-inheritance-diagram:
