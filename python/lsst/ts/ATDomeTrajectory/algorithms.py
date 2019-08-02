@@ -21,6 +21,7 @@
 __all__ = ["AlgorithmRegistry", "SimpleAlgorithm"]
 
 import abc
+import math
 
 from astropy.coordinates import Angle, AltAz
 import astropy.units as u
@@ -71,10 +72,18 @@ class BaseAlgorithm(abc.ABC):
 
 class SimpleAlgorithm(BaseAlgorithm):
     """Simple algorithm to follow the target position from the pointing kernel.
+
+    If the dome would vignette the telescope at the telescope target position
+    then specify dome azimuth = target azimuth. Otherwise don't move the dome.
     """
     def desired_dome_az(self, dome_az: Angle, target_azalt: AltAz):
         """Return a new desired dome azimuth if movement wanted, else None."""
-        if abs(utils.angle_diff(target_azalt.az, dome_az)) < self.max_daz:
+        # Compute scaled_daz: the difference between target and dome azimuth,
+        # wrapped to [-180, 180] and multiplied by cos(target alt).
+        # If scaled_daz is large enough to vignette then ask the dome
+        # to move to the telescope azimuth.
+        scaled_daz = utils.angle_diff(target_azalt.az, dome_az)*math.cos(target_azalt.alt.rad)
+        if abs(scaled_daz) < self.max_daz:
             return
         return target_azalt.az
 
