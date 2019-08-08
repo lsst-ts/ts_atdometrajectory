@@ -6,23 +6,17 @@
 lsst.ts.ATDomeTrajectory
 ########################
 
-ts_ATDomeTrajectory contains the `ATDomeTrajectoryCsc` and suport code,
-including a simple `FakeATDomeCsc`.
+ts_ATDomeTrajectory contains the `ATDomeTrajectory` CSC and support code,
+including a simple `FakeATDome` CSC for unit testing.
 
 .. _lsst.ts.ATDomeTrajectory-using:
 
 Using lsst.ts.ATDomeTrajectory
 ==============================
 
-ts_ATDomeTrajectory requires the following SALPY libraries:
-
-* SALPY_ATDome
-* SALPY_ATDomeTrajectory
-* SALPY_PointingComponent
-
 You can setup and build this package using eups and sconsUtils.
 After setting up the package you can build it and run unit tests by typing ``scons``.
-Building it merely copies ``bin.src/runATDomeTrajectory.py`` into ``bin/`` after tweaking the ``#!`` line.
+Building it constructs a version.py file and runs unit tests.
 
 To run the `ATDomeTrajectory` CSC type ``runATDomeTrajectory.py``
 
@@ -47,3 +41,13 @@ Python API reference
 .. automodapi:: lsst.ts.ATDomeTrajectory
    :no-main-docstr:
    :no-inheritance-diagram:
+.. automodapi:: lsst.ts.ATDomeTrajectory.algorithms
+   :no-main-docstr:
+   :no-inheritance-diagram:
+
+Revision History
+================
+
+.. toctree::
+    revision_history
+    :maxdepth: 1
