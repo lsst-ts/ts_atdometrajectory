@@ -20,6 +20,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
+import math
 import os
 import pathlib
 import unittest
@@ -32,6 +33,8 @@ from lsst.ts import ATDomeTrajectory
 STD_TIMEOUT = 2  # standard command timeout (sec)
 LONG_TIMEOUT = 20  # time limit for starting a SAL component (sec)
 TEST_CONFIG_DIR = pathlib.Path(__file__).parents[1].joinpath("tests", "data", "config")
+
+RAD_PER_DEG = math.pi/180
 
 
 class Harness:
@@ -153,12 +156,13 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
                                                                                         timeout=STD_TIMEOUT)
                 self.assertEqual(az_cmd_state.commandedState, 1)  # 1=Unknown
 
-                max_daz_deg = harness.csc.algorithm.max_daz.deg
-                for az_deg in (max_daz_deg + 0.001, 180, -0.001):
+                alt_deg = 40
+                min_daz_to_move = harness.csc.algorithm.max_daz.deg/math.cos(alt_deg*RAD_PER_DEG)
+                for az_deg in (min_daz_to_move + 0.001, 180, -0.001):
                     with self.subTest(az_deg=az_deg):
-                        await self.check_move(harness, az_deg, alt_deg=0)
+                        await self.check_move(harness, az_deg, alt_deg=alt_deg)
 
-                await self.check_null_moves(harness, alt_deg=0)
+                await self.check_null_moves(harness, alt_deg=alt_deg)
 
         asyncio.get_event_loop().run_until_complete(doit())
 
@@ -246,9 +250,9 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
             the test).
         """
         max_daz_deg = harness.csc.algorithm.max_daz.deg
-        daz_dome_deg = az_deg - harness.dome_csc.cmd_az.deg
-        if abs(daz_dome_deg) <= max_daz_deg:
-            raise ValueError(f"daz_dome_deg={daz_dome_deg} must be > max_daz_deg={max_daz_deg}")
+        scaled_daz_deg = (az_deg - harness.dome_csc.cmd_az.deg)*math.cos(alt_deg*RAD_PER_DEG)
+        if abs(scaled_daz_deg) <= max_daz_deg:
+            raise ValueError(f"scaled_daz_deg={scaled_daz_deg} must be > max_daz_deg={max_daz_deg}")
 
         harness.atmcs_controller.evt_target.set_put(elevation=alt_deg, azimuth=az_deg, force_output=True)
         await self.assert_dome_az(harness, az_deg, move_expected=True)
@@ -258,7 +262,7 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
     async def check_null_moves(self, harness, alt_deg):
         az_deg = harness.dome_csc.cmd_az.deg
         max_daz_deg = harness.csc.algorithm.max_daz.deg
-        no_move_daz_deg = max_daz_deg - 0.0001
+        no_move_daz_deg = (max_daz_deg - 0.0001)*math.cos(alt_deg*RAD_PER_DEG)
         for target_az_deg in (az_deg - no_move_daz_deg, az_deg + no_move_daz_deg, az_deg):
             harness.atmcs_controller.evt_target.set_put(elevation=alt_deg, azimuth=target_az_deg,
                                                         force_output=True)
