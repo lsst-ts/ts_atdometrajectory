@@ -32,9 +32,8 @@ LONG_TIMEOUT = 20  # time to start a SAL component (sec)
 
 class Harness:
     def __init__(self, initial_state):
-        self.dome_index = 1  # match ts_ATDome
-        self.csc = ATDomeTrajectory.FakeATDome(index=self.dome_index, initial_state=salobj.State.ENABLED)
-        self.remote = salobj.Remote(domain=self.csc.domain, name="ATDome", index=self.dome_index)
+        self.csc = ATDomeTrajectory.FakeATDome(initial_state=salobj.State.ENABLED)
+        self.remote = salobj.Remote(domain=self.csc.domain, name="ATDome")
 
     async def __aenter__(self):
         await asyncio.gather(self.csc.start_task, self.remote.start_task)

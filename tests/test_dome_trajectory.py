@@ -39,12 +39,11 @@ RAD_PER_DEG = math.pi/180
 
 class Harness:
     def __init__(self, initial_state, config_dir=None):
-        self.dome_index = 1  # match ts_ATDome
-        self.dome_csc = ATDomeTrajectory.FakeATDome(index=self.dome_index, initial_state=salobj.State.ENABLED)
-        self.dome_remote = salobj.Remote(domain=self.dome_csc.domain, name="ATDome", index=self.dome_index)
+        self.dome_csc = ATDomeTrajectory.FakeATDome(initial_state=salobj.State.ENABLED)
+        self.dome_remote = salobj.Remote(domain=self.dome_csc.domain, name="ATDome")
         self.atmcs_controller = salobj.Controller("ATMCS")
         self.csc = ATDomeTrajectory.ATDomeTrajectory(initial_state=initial_state, config_dir=config_dir)
-        self.remote = salobj.Remote(domain=self.csc.domain, name="ATDomeTrajectory", index=None)
+        self.remote = salobj.Remote(domain=self.csc.domain, name="ATDomeTrajectory")
 
     async def __aenter__(self):
         await asyncio.gather(self.dome_csc.start_task,
@@ -70,7 +69,7 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
             process = await asyncio.create_subprocess_exec("run_atdometrajectory.py")
             try:
                 async with salobj.Domain() as domain:
-                    remote = salobj.Remote(domain=domain, name="ATDomeTrajectory", index=None)
+                    remote = salobj.Remote(domain=domain, name="ATDomeTrajectory")
                     summaryState_data = await remote.evt_summaryState.next(flush=False, timeout=LONG_TIMEOUT)
                     self.assertEqual(summaryState_data.summaryState, salobj.State.STANDBY)
                     self.assertIsNone(process.returncode)
@@ -117,9 +116,6 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
                 self.assertEqual(harness.csc.summary_state, salobj.State.ENABLED)
                 state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
                 self.assertEqual(state.summaryState, salobj.State.ENABLED)
-
-                # if the dome indices  don't match then other tests will fail
-                self.assertEqual(harness.csc.dome_remote.salinfo.index, harness.dome_index)
 
                 # send disable; new state is DISABLED
                 await harness.remote.cmd_disable.start(timeout=STD_TIMEOUT)
