@@ -42,14 +42,12 @@ class FakeATDome(salobj.BaseCsc):
 
     Parameters
     ----------
-    index : `int`
-        SAL index of this CSC.
     initial_state : `salobj.State` or `int` (optional)
         The initial state of the CSC. This is provided for unit testing,
         as real CSCs should start up in `State.STANDBY`, the default.
     """
-    def __init__(self, index, initial_state):
-        super().__init__(name="ATDome", index=index, initial_state=initial_state)
+    def __init__(self, initial_state):
+        super().__init__(name="ATDome", index=None, initial_state=initial_state)
         self.curr_az = Angle(0, u.deg)
         self.cmd_az = Angle(0, u.deg)
         self.az_vel = 3  # deg/sec

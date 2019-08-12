@@ -80,9 +80,8 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         An astropy.coordinates.Angle, or None before the first read.
         """
 
-        self.atmcs_remote = salobj.Remote(domain=self.domain, name="ATMCS", index=0, include=["target"])
-        dome_index = 1  # match ts_ATDome
-        self.dome_remote = salobj.Remote(domain=self.domain, name="ATDome", index=dome_index,
+        self.atmcs_remote = salobj.Remote(domain=self.domain, name="ATMCS", include=["target"])
+        self.dome_remote = salobj.Remote(domain=self.domain, name="ATDome",
                                          include=["azimuthCommandedState"])
 
         self.atmcs_remote.evt_target.callback = self.update_target
