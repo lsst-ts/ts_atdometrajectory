@@ -81,7 +81,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         """
 
         self.atmcs_remote = salobj.Remote(domain=self.domain, name="ATMCS", include=["target"])
-        self.dome_remote = salobj.Remote(domain=self.domain, name="ATDome",
+        self.dome_remote = salobj.Remote(domain=self.domain, name="ATDome", index=1,
                                          include=["azimuthCommandedState"])
 
         self.atmcs_remote.evt_target.callback = self.update_target

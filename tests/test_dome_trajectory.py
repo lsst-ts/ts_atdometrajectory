@@ -40,7 +40,7 @@ RAD_PER_DEG = math.pi/180
 class Harness:
     def __init__(self, initial_state, config_dir=None):
         self.dome_csc = ATDomeTrajectory.FakeATDome(initial_state=salobj.State.ENABLED)
-        self.dome_remote = salobj.Remote(domain=self.dome_csc.domain, name="ATDome")
+        self.dome_remote = salobj.Remote(domain=self.dome_csc.domain, name="ATDome", index=1)
         self.atmcs_controller = salobj.Controller("ATMCS")
         self.csc = ATDomeTrajectory.ATDomeTrajectory(initial_state=initial_state, config_dir=config_dir)
         self.remote = salobj.Remote(domain=self.csc.domain, name="ATDomeTrajectory")
