@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import asyncio
+
 from lsst.ts import ATDomeTrajectory
 
-ATDomeTrajectory.ATDomeTrajectory.main(index=None)
+asyncio.run(ATDomeTrajectory.ATDomeTrajectory.amain(index=None))

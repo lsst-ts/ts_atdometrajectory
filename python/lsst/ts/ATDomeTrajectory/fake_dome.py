@@ -61,6 +61,7 @@ class FakeATDome(salobj.BaseCsc):
             azimuth=math.nan, force_output=True)
 
     async def close_tasks(self):
+        await super().close_tasks()
         self.move_azimuth_task.cancel()
 
     def do_moveAzimuth(self, data):

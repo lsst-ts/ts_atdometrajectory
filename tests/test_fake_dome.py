@@ -23,6 +23,8 @@ import asyncio
 import time
 import unittest
 
+import asynctest
+
 from lsst.ts import salobj
 from lsst.ts import ATDomeTrajectory
 
@@ -43,52 +45,49 @@ class Harness:
         await self.csc.close()
 
 
-class FakeDomeTestCase(unittest.TestCase):
+class FakeDomeTestCase(asynctest.TestCase):
     def setUp(self):
         salobj.test_utils.set_random_lsst_dds_domain()
 
-    def test_move_azimuth(self):
+    async def test_move_azimuth(self):
         """Test issuing moveAzimuth commands to ATDomeCsc.
         """
-        async def doit():
-            async with Harness(initial_state=salobj.State.ENABLED) as harness:
-                self.assertEqual(harness.csc.summary_state, salobj.State.ENABLED)
-                state = await harness.remote.evt_summaryState.next(flush=False, timeout=LONG_TIMEOUT)
-                self.assertEqual(state.summaryState, salobj.State.ENABLED)
+        async with Harness(initial_state=salobj.State.ENABLED) as harness:
+            self.assertEqual(harness.csc.summary_state, salobj.State.ENABLED)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=LONG_TIMEOUT)
+            self.assertEqual(state.summaryState, salobj.State.ENABLED)
+
+            az_cmd_state = await harness.remote.evt_azimuthCommandedState.next(flush=False,
+                                                                               timeout=STD_TIMEOUT)
+            self.assertEqual(az_cmd_state.commandedState, 1)  # 1=Unknown
+
+            position = await harness.remote.tel_position.next(flush=True, timeout=STD_TIMEOUT)
+            ATDomeTrajectory.assert_angles_almost_equal(position.azimuthPosition, 0)
+
+            for az in (3, -1):
+                predicted_duration = abs(az - position.azimuthPosition)/harness.csc.az_vel
+                start_time = time.time()
+                # be conservative about the end time
+                predicted_end_time = start_time + predicted_duration
+                safe_moving_end_time = predicted_end_time - harness.csc.telemetry_interval
+                safe_done_end_time = predicted_end_time + harness.csc.telemetry_interval*2
+                harness.remote.cmd_moveAzimuth.set(azimuth=az)
+                await harness.remote.cmd_moveAzimuth.start(timeout=STD_TIMEOUT)
 
                 az_cmd_state = await harness.remote.evt_azimuthCommandedState.next(flush=False,
                                                                                    timeout=STD_TIMEOUT)
-                self.assertEqual(az_cmd_state.commandedState, 1)  # 1=Unknown
+                self.assertEqual(az_cmd_state.commandedState, 2)  # 2=GoTo
+                ATDomeTrajectory.assert_angles_almost_equal(az_cmd_state.azimuth, az)
 
-                position = await harness.remote.tel_position.next(flush=True, timeout=STD_TIMEOUT)
-                ATDomeTrajectory.assert_angles_almost_equal(position.azimuthPosition, 0)
-
-                for az in (3, -1):
-                    predicted_duration = abs(az - position.azimuthPosition)/harness.csc.az_vel
-                    start_time = time.time()
-                    # be conservative about the end time
-                    predicted_end_time = start_time + predicted_duration
-                    safe_moving_end_time = predicted_end_time - harness.csc.telemetry_interval
-                    safe_done_end_time = predicted_end_time + harness.csc.telemetry_interval*2
-                    harness.remote.cmd_moveAzimuth.set(azimuth=az)
-                    await harness.remote.cmd_moveAzimuth.start(timeout=STD_TIMEOUT)
-
-                    az_cmd_state = await harness.remote.evt_azimuthCommandedState.next(flush=False,
-                                                                                       timeout=STD_TIMEOUT)
-                    self.assertEqual(az_cmd_state.commandedState, 2)  # 2=GoTo
-                    ATDomeTrajectory.assert_angles_almost_equal(az_cmd_state.azimuth, az)
-
-                    while True:
-                        position = await harness.remote.tel_position.next(flush=True, timeout=STD_TIMEOUT)
-                        if time.time() < safe_moving_end_time:
-                            with self.assertRaises(AssertionError):
-                                ATDomeTrajectory.assert_angles_almost_equal(position.azimuthPosition, az)
-                        elif time.time() > safe_done_end_time:
+                while True:
+                    position = await harness.remote.tel_position.next(flush=True, timeout=STD_TIMEOUT)
+                    if time.time() < safe_moving_end_time:
+                        with self.assertRaises(AssertionError):
                             ATDomeTrajectory.assert_angles_almost_equal(position.azimuthPosition, az)
-                            break
-                        await asyncio.sleep(harness.csc.telemetry_interval)
-
-        asyncio.get_event_loop().run_until_complete(doit())
+                    elif time.time() > safe_done_end_time:
+                        ATDomeTrajectory.assert_angles_almost_equal(position.azimuthPosition, az)
+                        break
+                    await asyncio.sleep(harness.csc.telemetry_interval)
 
 
 if __name__ == "__main__":

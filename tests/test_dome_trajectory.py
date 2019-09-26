@@ -25,6 +25,8 @@ import os
 import pathlib
 import unittest
 
+import asynctest
+import astropy.units as u
 import yaml
 
 from lsst.ts import salobj
@@ -54,158 +56,144 @@ class Harness:
         return self
 
     async def __aexit__(self, *args):
-        await self.dome_csc.close()
         await self.csc.close()
+        await self.atmcs_controller.close()
+        await self.dome_csc.close()
 
 
-class ATDomeTrajectoryTestCase(unittest.TestCase):
+class ATDomeTrajectoryTestCase(asynctest.TestCase):
     def setUp(self):
         salobj.test_utils.set_random_lsst_dds_domain()
 
-    def test_main(self):
-        async def doit():
-            """Test that run_atdometrajectory.py runs the CSC.
-            """
-            process = await asyncio.create_subprocess_exec("run_atdometrajectory.py")
-            try:
-                async with salobj.Domain() as domain:
-                    remote = salobj.Remote(domain=domain, name="ATDomeTrajectory")
-                    summaryState_data = await remote.evt_summaryState.next(flush=False, timeout=LONG_TIMEOUT)
-                    self.assertEqual(summaryState_data.summaryState, salobj.State.STANDBY)
-                    self.assertIsNone(process.returncode)
+    async def test_main(self):
+        """Test that run_atdometrajectory.py runs the CSC.
+        """
+        process = await asyncio.create_subprocess_exec("run_atdometrajectory.py")
+        try:
+            async with salobj.Domain() as domain:
+                remote = salobj.Remote(domain=domain, name="ATDomeTrajectory")
+                summaryState_data = await remote.evt_summaryState.next(flush=False, timeout=LONG_TIMEOUT)
+                self.assertEqual(summaryState_data.summaryState, salobj.State.STANDBY)
+                self.assertIsNone(process.returncode)
 
-                    await remote.cmd_start.start(timeout=STD_TIMEOUT)
-                    summaryState_data = await remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
-                    self.assertEqual(summaryState_data.summaryState, salobj.State.DISABLED)
-                    self.assertIsNone(process.returncode)
+                await remote.cmd_start.start(timeout=STD_TIMEOUT)
+                summaryState_data = await remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
+                self.assertEqual(summaryState_data.summaryState, salobj.State.DISABLED)
+                self.assertIsNone(process.returncode)
 
-                    await remote.cmd_standby.start(timeout=STD_TIMEOUT)
-                    summaryState_data = await remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
-                    self.assertEqual(summaryState_data.summaryState, salobj.State.STANDBY)
+                await remote.cmd_standby.start(timeout=STD_TIMEOUT)
+                summaryState_data = await remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
+                self.assertEqual(summaryState_data.summaryState, salobj.State.STANDBY)
 
-                    await remote.cmd_exitControl.start(timeout=STD_TIMEOUT)
-                    summaryState_data = await remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
-                    self.assertEqual(summaryState_data.summaryState, salobj.State.OFFLINE)
+                await remote.cmd_exitControl.start(timeout=STD_TIMEOUT)
+                summaryState_data = await remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
+                self.assertEqual(summaryState_data.summaryState, salobj.State.OFFLINE)
 
-                    await asyncio.wait_for(process.wait(), timeout=5)
-            except Exception:
-                if process.returncode is None:
-                    process.terminate()
-                raise
+                await asyncio.wait_for(process.wait(), timeout=5)
+        except Exception:
+            if process.returncode is None:
+                process.terminate()
+            raise
 
-        asyncio.get_event_loop().run_until_complete(doit())
-
-    def test_standard_state_transitions(self):
+    async def test_standard_state_transitions(self):
         """Test standard CSC state transitions.
         """
-        async def doit():
-            async with Harness(initial_state=salobj.State.STANDBY) as harness:
-                self.assertEqual(harness.csc.summary_state, salobj.State.STANDBY)
-                state = await harness.remote.evt_summaryState.next(flush=False, timeout=LONG_TIMEOUT)
-                self.assertEqual(state.summaryState, salobj.State.STANDBY)
-                self.assertIsNone(harness.csc.dome_cmd_az)
+        async with Harness(initial_state=salobj.State.STANDBY) as harness:
+            self.assertEqual(harness.csc.summary_state, salobj.State.STANDBY)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=LONG_TIMEOUT)
+            self.assertEqual(state.summaryState, salobj.State.STANDBY)
+            self.assertIsNone(harness.csc.dome_cmd_az)
 
-                # send start; new state is DISABLED
-                await harness.remote.cmd_start.start(timeout=STD_TIMEOUT)
-                self.assertEqual(harness.csc.summary_state, salobj.State.DISABLED)
-                state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
-                self.assertEqual(state.summaryState, salobj.State.DISABLED)
+            # send start; new state is DISABLED
+            await harness.remote.cmd_start.start(timeout=STD_TIMEOUT)
+            self.assertEqual(harness.csc.summary_state, salobj.State.DISABLED)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
+            self.assertEqual(state.summaryState, salobj.State.DISABLED)
 
-                # send enable; new state is ENABLED
-                await harness.remote.cmd_enable.start(timeout=STD_TIMEOUT)
-                self.assertEqual(harness.csc.summary_state, salobj.State.ENABLED)
-                state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
-                self.assertEqual(state.summaryState, salobj.State.ENABLED)
+            # send enable; new state is ENABLED
+            await harness.remote.cmd_enable.start(timeout=STD_TIMEOUT)
+            self.assertEqual(harness.csc.summary_state, salobj.State.ENABLED)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
+            self.assertEqual(state.summaryState, salobj.State.ENABLED)
 
-                # send disable; new state is DISABLED
-                await harness.remote.cmd_disable.start(timeout=STD_TIMEOUT)
-                self.assertEqual(harness.csc.summary_state, salobj.State.DISABLED)
-                state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
-                self.assertEqual(state.summaryState, salobj.State.DISABLED)
+            # send disable; new state is DISABLED
+            await harness.remote.cmd_disable.start(timeout=STD_TIMEOUT)
+            self.assertEqual(harness.csc.summary_state, salobj.State.DISABLED)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
+            self.assertEqual(state.summaryState, salobj.State.DISABLED)
 
-                # send standby; new state is STANDBY
-                await harness.remote.cmd_standby.start(timeout=STD_TIMEOUT)
-                self.assertEqual(harness.csc.summary_state, salobj.State.STANDBY)
-                state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
-                self.assertEqual(state.summaryState, salobj.State.STANDBY)
+            # send standby; new state is STANDBY
+            await harness.remote.cmd_standby.start(timeout=STD_TIMEOUT)
+            self.assertEqual(harness.csc.summary_state, salobj.State.STANDBY)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
+            self.assertEqual(state.summaryState, salobj.State.STANDBY)
 
-                # send exitControl; new state is OFFLINE
-                await harness.remote.cmd_exitControl.start(timeout=STD_TIMEOUT)
-                self.assertEqual(harness.csc.summary_state, salobj.State.OFFLINE)
-                state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
-                self.assertEqual(state.summaryState, salobj.State.OFFLINE)
+            # send exitControl; new state is OFFLINE
+            await harness.remote.cmd_exitControl.start(timeout=STD_TIMEOUT)
+            self.assertEqual(harness.csc.summary_state, salobj.State.OFFLINE)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
+            self.assertEqual(state.summaryState, salobj.State.OFFLINE)
 
-                await asyncio.wait_for(harness.csc.done_task, 2)
+            await asyncio.wait_for(harness.csc.done_task, 2)
 
-        asyncio.get_event_loop().run_until_complete(doit())
-
-    def test_simple_follow(self):
+    async def test_simple_follow(self):
         """Test that dome follows telescope using the "simple" algorithm.
         """
-        async def doit():
-            async with Harness(initial_state=salobj.State.ENABLED) as harness:
-                self.assertEqual(harness.csc.summary_state, salobj.State.ENABLED)
-                state = await harness.remote.evt_summaryState.next(flush=False, timeout=LONG_TIMEOUT)
-                self.assertEqual(state.summaryState, salobj.State.ENABLED)
+        async with Harness(initial_state=salobj.State.ENABLED) as harness:
+            self.assertEqual(harness.csc.summary_state, salobj.State.ENABLED)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=LONG_TIMEOUT)
+            self.assertEqual(state.summaryState, salobj.State.ENABLED)
 
-                az_cmd_state = await harness.dome_remote.evt_azimuthCommandedState.next(flush=False,
-                                                                                        timeout=STD_TIMEOUT)
-                self.assertEqual(az_cmd_state.commandedState, 1)  # 1=Unknown
+            az_cmd_state = await harness.dome_remote.evt_azimuthCommandedState.next(flush=False,
+                                                                                    timeout=STD_TIMEOUT)
+            self.assertEqual(az_cmd_state.commandedState, 1)  # 1=Unknown
 
-                alt_deg = 40
-                min_daz_to_move = harness.csc.algorithm.max_daz.deg/math.cos(alt_deg*RAD_PER_DEG)
-                for az_deg in (min_daz_to_move + 0.001, 180, -0.001):
-                    with self.subTest(az_deg=az_deg):
-                        await self.check_move(harness, az_deg, alt_deg=alt_deg)
+            alt_deg = 40
+            min_daz_to_move = harness.csc.algorithm.max_daz.deg/math.cos(alt_deg*RAD_PER_DEG)
+            for az_deg in (min_daz_to_move + 0.001, 180, -0.001):
+                with self.subTest(az_deg=az_deg):
+                    await self.check_move(harness, az_deg, alt_deg=alt_deg)
 
-                await self.check_null_moves(harness, alt_deg=alt_deg)
+            await self.check_null_moves(harness, alt_deg=alt_deg)
 
-        asyncio.get_event_loop().run_until_complete(doit())
+    async def test_default_config_dir(self):
+        async with Harness(initial_state=salobj.State.STANDBY) as harness:
+            self.assertEqual(harness.csc.summary_state, salobj.State.STANDBY)
 
-    def test_default_config_dir(self):
-        async def doit():
-            async with Harness(initial_state=salobj.State.STANDBY) as harness:
-                self.assertEqual(harness.csc.summary_state, salobj.State.STANDBY)
+            desired_config_pkg_name = "ts_config_attcs"
+            desired_config_env_name = desired_config_pkg_name.upper() + "_DIR"
+            desird_config_pkg_dir = os.environ[desired_config_env_name]
+            desired_config_dir = pathlib.Path(desird_config_pkg_dir) / "ATDomeTrajectory/v1"
+            self.assertEqual(harness.csc.get_config_pkg(), desired_config_pkg_name)
+            self.assertEqual(harness.csc.config_dir, desired_config_dir)
+            await harness.csc.do_exitControl(data=None)
+            await asyncio.wait_for(harness.csc.done_task, timeout=5)
 
-                desired_config_pkg_name = "ts_config_attcs"
-                desired_config_env_name = desired_config_pkg_name.upper() + "_DIR"
-                desird_config_pkg_dir = os.environ[desired_config_env_name]
-                desired_config_dir = pathlib.Path(desird_config_pkg_dir) / "ATDomeTrajectory/v1"
-                self.assertEqual(harness.csc.get_config_pkg(), desired_config_pkg_name)
-                self.assertEqual(harness.csc.config_dir, desired_config_dir)
-                await harness.csc.do_exitControl(data=None)
-                await asyncio.wait_for(harness.csc.done_task, timeout=5)
+    async def test_configuration(self):
+        async with Harness(initial_state=salobj.State.STANDBY, config_dir=TEST_CONFIG_DIR) as harness:
+            self.assertEqual(harness.csc.summary_state, salobj.State.STANDBY)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=LONG_TIMEOUT)
+            self.assertEqual(state.summaryState, salobj.State.STANDBY)
 
-        asyncio.get_event_loop().run_until_complete(doit())
+            for bad_config_name in ("no_such_file.yaml",
+                                    "invalid_no_such_algorithm.yaml",
+                                    "invalid_malformed.yaml",
+                                    "invalid_bad_max_daz.yaml",
+                                    ):
+                with self.subTest(bad_config_name=bad_config_name):
+                    harness.remote.cmd_start.set(settingsToApply=bad_config_name)
+                    with salobj.test_utils.assertRaisesAckError():
+                        await harness.remote.cmd_start.start(timeout=STD_TIMEOUT)
 
-    def test_configuration(self):
-        async def doit():
-            async with Harness(initial_state=salobj.State.STANDBY, config_dir=TEST_CONFIG_DIR) as harness:
-                self.assertEqual(harness.csc.summary_state, salobj.State.STANDBY)
-                state = await harness.remote.evt_summaryState.next(flush=False, timeout=LONG_TIMEOUT)
-                self.assertEqual(state.summaryState, salobj.State.STANDBY)
-
-                for bad_config_name in ("no_such_file.yaml",
-                                        "invalid_no_such_algorithm.yaml",
-                                        "invalid_malformed.yaml",
-                                        "invalid_bad_max_daz.yaml",
-                                        ):
-                    with self.subTest(bad_config_name=bad_config_name):
-                        harness.remote.cmd_start.set(settingsToApply=bad_config_name)
-                        with salobj.test_utils.assertRaisesAckError():
-                            await harness.remote.cmd_start.start(timeout=STD_TIMEOUT)
-
-                harness.remote.cmd_start.set(settingsToApply="valid.yaml")
-                await harness.remote.cmd_start.start(timeout=STD_TIMEOUT)
-                self.assertEqual(harness.csc.summary_state, salobj.State.DISABLED)
-                state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
-                self.assertEqual(state.summaryState, salobj.State.DISABLED)
-                settings = await harness.remote.evt_settingsApplied.next(flush=False, timeout=STD_TIMEOUT)
-                self.assertEqual(settings.algorithmName, "simple")
-                # max_daz is hard coded in the yaml file
-                self.assertEqual(yaml.safe_load(settings.algorithmConfig), dict(max_daz=7.1))
-
-        asyncio.get_event_loop().run_until_complete(doit())
+            harness.remote.cmd_start.set(settingsToApply="valid.yaml")
+            await harness.remote.cmd_start.start(timeout=STD_TIMEOUT)
+            self.assertEqual(harness.csc.summary_state, salobj.State.DISABLED)
+            state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
+            self.assertEqual(state.summaryState, salobj.State.DISABLED)
+            settings = await harness.remote.evt_settingsApplied.next(flush=False, timeout=STD_TIMEOUT)
+            self.assertEqual(settings.algorithmName, "simple")
+            # max_daz is hard coded in the yaml file
+            self.assertEqual(yaml.safe_load(settings.algorithmConfig), dict(max_daz=7.1))
 
     async def assert_dome_az(self, harness, expected_az, move_expected):
         """Check the ATDome and ATDomeController commanded azimuth.
@@ -233,6 +221,8 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
 
         Parameters
         ----------
+        harness : `Harness`
+            Test harness
         az_deg : `float`
             Desired azimuth for telescope and dome (deg)
         alt_deg : `float`
@@ -253,9 +243,34 @@ class ATDomeTrajectoryTestCase(unittest.TestCase):
         harness.atmcs_controller.evt_target.set_put(elevation=alt_deg, azimuth=az_deg, force_output=True)
         await self.assert_dome_az(harness, az_deg, move_expected=True)
         self.assert_target_azalt(harness, az_deg, alt_deg)
+        await asyncio.wait_for(self.wait_dome_move(harness, az_deg), timeout=LONG_TIMEOUT)
         await self.check_null_moves(harness, alt_deg)
 
+    async def wait_dome_move(self, harness, az_deg):
+        """Wait for an ATDome azimuth move to finish.
+
+        Parameters
+        ----------
+        harness : `Harness`
+            Test harness
+        az_deg : `float`
+            Target azimuth for telescope and dome (deg)
+        """
+        while True:
+            curr_pos = await harness.dome_remote.tel_position.next(flush=True, timeout=STD_TIMEOUT)
+            if ATDomeTrajectory.angle_diff(curr_pos.azimuthPosition, az_deg) < 0.1*u.deg:
+                break
+
     async def check_null_moves(self, harness, alt_deg):
+        """Check that small telescope moves do not trigger dome motion.
+
+        Parameters
+        ----------
+        harness : `Harness`
+            Test harness
+        alt_deg : `float`
+            Target altitude for telescope (deg)
+        """
         az_deg = harness.dome_csc.cmd_az.deg
         max_daz_deg = harness.csc.algorithm.max_daz.deg
         no_move_daz_deg = (max_daz_deg - 0.0001)*math.cos(alt_deg*RAD_PER_DEG)
