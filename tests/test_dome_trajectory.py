@@ -26,6 +26,7 @@ import pathlib
 import unittest
 
 import asynctest
+import astropy.units as u
 import yaml
 
 from lsst.ts import salobj
@@ -220,6 +221,8 @@ class ATDomeTrajectoryTestCase(asynctest.TestCase):
 
         Parameters
         ----------
+        harness : `Harness`
+            Test harness
         az_deg : `float`
             Desired azimuth for telescope and dome (deg)
         alt_deg : `float`
@@ -240,9 +243,34 @@ class ATDomeTrajectoryTestCase(asynctest.TestCase):
         harness.atmcs_controller.evt_target.set_put(elevation=alt_deg, azimuth=az_deg, force_output=True)
         await self.assert_dome_az(harness, az_deg, move_expected=True)
         self.assert_target_azalt(harness, az_deg, alt_deg)
+        await asyncio.wait_for(self.wait_dome_move(harness, az_deg), timeout=LONG_TIMEOUT)
         await self.check_null_moves(harness, alt_deg)
 
+    async def wait_dome_move(self, harness, az_deg):
+        """Wait for an ATDome azimuth move to finish.
+
+        Parameters
+        ----------
+        harness : `Harness`
+            Test harness
+        az_deg : `float`
+            Target azimuth for telescope and dome (deg)
+        """
+        while True:
+            curr_pos = await harness.dome_remote.tel_position.next(flush=True, timeout=STD_TIMEOUT)
+            if ATDomeTrajectory.angle_diff(curr_pos.azimuthPosition, az_deg) < 0.1*u.deg:
+                break
+
     async def check_null_moves(self, harness, alt_deg):
+        """Check that small telescope moves do not trigger dome motion.
+
+        Parameters
+        ----------
+        harness : `Harness`
+            Test harness
+        alt_deg : `float`
+            Target altitude for telescope (deg)
+        """
         az_deg = harness.dome_csc.cmd_az.deg
         max_daz_deg = harness.csc.algorithm.max_daz.deg
         no_move_daz_deg = (max_daz_deg - 0.0001)*math.cos(alt_deg*RAD_PER_DEG)
