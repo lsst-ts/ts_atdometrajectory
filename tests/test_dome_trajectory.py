@@ -63,7 +63,7 @@ class Harness:
 
 class ATDomeTrajectoryTestCase(asynctest.TestCase):
     def setUp(self):
-        salobj.test_utils.set_random_lsst_dds_domain()
+        salobj.set_random_lsst_dds_domain()
 
     async def test_main(self):
         """Test that run_atdometrajectory.py runs the CSC.
@@ -182,7 +182,7 @@ class ATDomeTrajectoryTestCase(asynctest.TestCase):
                                     ):
                 with self.subTest(bad_config_name=bad_config_name):
                     harness.remote.cmd_start.set(settingsToApply=bad_config_name)
-                    with salobj.test_utils.assertRaisesAckError():
+                    with salobj.assertRaisesAckError():
                         await harness.remote.cmd_start.start(timeout=STD_TIMEOUT)
 
             harness.remote.cmd_start.set(settingsToApply="valid.yaml")

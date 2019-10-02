@@ -47,7 +47,7 @@ class Harness:
 
 class FakeDomeTestCase(asynctest.TestCase):
     def setUp(self):
-        salobj.test_utils.set_random_lsst_dds_domain()
+        salobj.set_random_lsst_dds_domain()
 
     async def test_move_azimuth(self):
         """Test issuing moveAzimuth commands to ATDomeCsc.
