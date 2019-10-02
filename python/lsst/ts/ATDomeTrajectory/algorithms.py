@@ -27,7 +27,6 @@ from astropy.coordinates import Angle, AltAz
 import astropy.units as u
 
 from lsst.ts import salobj
-from . import utils
 
 AlgorithmRegistry = dict()
 
@@ -82,7 +81,7 @@ class SimpleAlgorithm(BaseAlgorithm):
         # wrapped to [-180, 180] and multiplied by cos(target alt).
         # If scaled_daz is large enough to vignette then ask the dome
         # to move to the telescope azimuth.
-        scaled_daz = utils.angle_diff(target_azalt.az, dome_az)*math.cos(target_azalt.alt.rad)
+        scaled_daz = salobj.angle_diff(target_azalt.az, dome_az)*math.cos(target_azalt.alt.rad)
         if abs(scaled_daz) < self.max_daz:
             return
         return target_azalt.az

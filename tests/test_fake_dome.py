@@ -47,7 +47,7 @@ class Harness:
 
 class FakeDomeTestCase(asynctest.TestCase):
     def setUp(self):
-        salobj.test_utils.set_random_lsst_dds_domain()
+        salobj.set_random_lsst_dds_domain()
 
     async def test_move_azimuth(self):
         """Test issuing moveAzimuth commands to ATDomeCsc.
@@ -62,7 +62,7 @@ class FakeDomeTestCase(asynctest.TestCase):
             self.assertEqual(az_cmd_state.commandedState, 1)  # 1=Unknown
 
             position = await harness.remote.tel_position.next(flush=True, timeout=STD_TIMEOUT)
-            ATDomeTrajectory.assert_angles_almost_equal(position.azimuthPosition, 0)
+            salobj.assertAnglesAlmostEqual(position.azimuthPosition, 0)
 
             for az in (3, -1):
                 predicted_duration = abs(az - position.azimuthPosition)/harness.csc.az_vel
@@ -77,15 +77,15 @@ class FakeDomeTestCase(asynctest.TestCase):
                 az_cmd_state = await harness.remote.evt_azimuthCommandedState.next(flush=False,
                                                                                    timeout=STD_TIMEOUT)
                 self.assertEqual(az_cmd_state.commandedState, 2)  # 2=GoTo
-                ATDomeTrajectory.assert_angles_almost_equal(az_cmd_state.azimuth, az)
+                salobj.assertAnglesAlmostEqual(az_cmd_state.azimuth, az)
 
                 while True:
                     position = await harness.remote.tel_position.next(flush=True, timeout=STD_TIMEOUT)
                     if time.time() < safe_moving_end_time:
                         with self.assertRaises(AssertionError):
-                            ATDomeTrajectory.assert_angles_almost_equal(position.azimuthPosition, az)
+                            salobj.assertAnglesAlmostEqual(position.azimuthPosition, az)
                     elif time.time() > safe_done_end_time:
-                        ATDomeTrajectory.assert_angles_almost_equal(position.azimuthPosition, az)
+                        salobj.assertAnglesAlmostEqual(position.azimuthPosition, az)
                         break
                     await asyncio.sleep(harness.csc.telemetry_interval)
 

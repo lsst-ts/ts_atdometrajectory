@@ -27,7 +27,6 @@ from astropy.coordinates import Angle
 import astropy.units as u
 
 from lsst.ts import salobj
-from .utils import angle_diff
 
 
 class FakeATDome(salobj.BaseCsc):
@@ -74,7 +73,7 @@ class FakeATDome(salobj.BaseCsc):
 
     def report_summary_state(self):
         super().report_summary_state()
-        if self.summary_state in (salobj.State.DISABLED, salobj.State.ENABLED):
+        if self.disabled_or_enabled:
             self.move_azimuth_task = asyncio.ensure_future(self.move_azimuth_loop())
         elif not self.move_azimuth_task.done():
             self.move_azimuth_task.cancel()
@@ -84,7 +83,7 @@ class FakeATDome(salobj.BaseCsc):
         max_az_corr = Angle(abs(self.az_vel * self.telemetry_interval), u.deg)
         while True:
             if self.summary_state == salobj.State.ENABLED and self.cmd_az != self.curr_az:
-                az_err = angle_diff(self.cmd_az, self.curr_az)
+                az_err = salobj.angle_diff(self.cmd_az, self.curr_az)
                 abs_az_corr = min(abs(az_err), max_az_corr)
                 az_corr = abs_az_corr if az_err >= 0 else -abs_az_corr
                 self.curr_az += az_corr

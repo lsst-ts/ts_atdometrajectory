@@ -63,7 +63,7 @@ class Harness:
 
 class ATDomeTrajectoryTestCase(asynctest.TestCase):
     def setUp(self):
-        salobj.test_utils.set_random_lsst_dds_domain()
+        salobj.set_random_lsst_dds_domain()
 
     async def test_main(self):
         """Test that run_atdometrajectory.py runs the CSC.
@@ -182,7 +182,7 @@ class ATDomeTrajectoryTestCase(asynctest.TestCase):
                                     ):
                 with self.subTest(bad_config_name=bad_config_name):
                     harness.remote.cmd_start.set(settingsToApply=bad_config_name)
-                    with salobj.test_utils.assertRaisesAckError():
+                    with salobj.assertRaisesAckError():
                         await harness.remote.cmd_start.start(timeout=STD_TIMEOUT)
 
             harness.remote.cmd_start.set(settingsToApply="valid.yaml")
@@ -203,15 +203,15 @@ class ATDomeTrajectoryTestCase(asynctest.TestCase):
                                                                                     timeout=STD_TIMEOUT)
             az_cmd_state = harness.dome_remote.evt_azimuthCommandedState.get()
             self.assertEqual(az_cmd_state.commandedState, 2)  # 1=GoToPosition
-            ATDomeTrajectory.assert_angles_almost_equal(az_cmd_state.azimuth, expected_az)
+            salobj.assertAnglesAlmostEqual(az_cmd_state.azimuth, expected_az)
         else:
             with self.assertRaises(asyncio.TimeoutError):
                 await harness.dome_remote.evt_azimuthCommandedState.next(flush=False,
                                                                          timeout=0.2)
 
     def assert_target_azalt(self, harness, expected_az, expected_alt):
-        ATDomeTrajectory.assert_angles_almost_equal(harness.csc.target_azalt.az, expected_az)
-        ATDomeTrajectory.assert_angles_almost_equal(harness.csc.target_azalt.alt, expected_alt)
+        salobj.assertAnglesAlmostEqual(harness.csc.target_azalt.az, expected_az)
+        salobj.assertAnglesAlmostEqual(harness.csc.target_azalt.alt, expected_alt)
 
     async def check_move(self, harness, az_deg, alt_deg):
         """Set telescope target azimuth and check that the dome goes there.
@@ -258,7 +258,7 @@ class ATDomeTrajectoryTestCase(asynctest.TestCase):
         """
         while True:
             curr_pos = await harness.dome_remote.tel_position.next(flush=True, timeout=STD_TIMEOUT)
-            if ATDomeTrajectory.angle_diff(curr_pos.azimuthPosition, az_deg) < 0.1*u.deg:
+            if salobj.angle_diff(curr_pos.azimuthPosition, az_deg) < 0.1*u.deg:
                 break
 
     async def check_null_moves(self, harness, alt_deg):
