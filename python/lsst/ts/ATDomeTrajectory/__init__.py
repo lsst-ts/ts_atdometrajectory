@@ -19,10 +19,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .utils import *
 from .dome_trajectory import *
 from .fake_dome import *
 from . import algorithms
+
 try:
     from .version import *
 except ImportError:
