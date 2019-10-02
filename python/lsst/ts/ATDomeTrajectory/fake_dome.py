@@ -73,7 +73,7 @@ class FakeATDome(salobj.BaseCsc):
 
     def report_summary_state(self):
         super().report_summary_state()
-        if self.summary_state in (salobj.State.DISABLED, salobj.State.ENABLED):
+        if self.disabled_or_enabled:
             self.move_azimuth_task = asyncio.ensure_future(self.move_azimuth_loop())
         elif not self.move_azimuth_task.done():
             self.move_azimuth_task.cancel()
