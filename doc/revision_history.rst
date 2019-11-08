@@ -6,13 +6,50 @@
 ts_ATDomeTrajectory Revision History
 ####################################
 
-v0.8.2
+v1.1.0
+======
+Update for SAL 4.
+
+Other changes:
+
+* Modernize the code.
+* Fix a race condition in a unit test.
+
+Requirements:
+
+* ts_salobj 5
+* ts_idl 0.4
+* IDL files for ATDome, ATDomeTrajectory and ATMCS
+* ts_xml 4.1
+* ts_ATDome 0.8
+
+v1.0.0
+======
+Update for ATDome no longer having a SAL index.
+
+Requirements:
+
+* ts_salobj 4.3
+* ts_idl
+* IDL files for ATDome, ATDomeTrajectory and ATMCS
+* ts_xml 4.1
+* ts_ATDome 0.7
+
+v0.9.0
 ======
 In `algorithms.SimpleAlgorithm` scale daz by cos(el) so the dome is less likely to move unnecessarily.
 
-Add this revision history.
+Other changes:
 
-Make the package usable from source, without running scons. Thus move bin.src/run_atdometrajectory.py to bin/run_atdometrajectory.py and make the presence of version.py optional.
+* Add this revision history.
+* Make the package usable from source, without running scons.
+  Thus move bin.src/run_atdometrajectory.py to bin/run_atdometrajectory.py and make the presence of version.py optional.
+
+Requirements:
+
+* ts_salobj 4.3
+* ts_idl
+* IDL files for ATDome, ATDomeTrajectory and ATMCS
 
 v0.8.1
 ======
