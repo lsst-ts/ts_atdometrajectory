@@ -134,10 +134,13 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
     async def follow_target(self):
         """Send the dome to a new position, if appropriate.
 
-        This has no effect unless the summary state is enabled
-        and the target and dome azimuth are known.
+        This has no effect unless the summary state is enabled,
+        the CSC and remotes have fully started,
+        and the target azimuth is known.
         """
         if self.summary_state != salobj.State.ENABLED:
+            return
+        if not self.start_task.done():
             return
         if self.target_azalt is None:
             return
