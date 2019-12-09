@@ -190,7 +190,7 @@ class ATDomeTrajectoryTestCase(asynctest.TestCase):
             self.assertEqual(harness.csc.summary_state, salobj.State.DISABLED)
             state = await harness.remote.evt_summaryState.next(flush=False, timeout=STD_TIMEOUT)
             self.assertEqual(state.summaryState, salobj.State.DISABLED)
-            settings = await harness.remote.evt_settingsApplied.next(flush=False, timeout=STD_TIMEOUT)
+            settings = await harness.remote.evt_algorithm.next(flush=False, timeout=STD_TIMEOUT)
             self.assertEqual(settings.algorithmName, "simple")
             # max_daz is hard coded in the yaml file
             self.assertEqual(yaml.safe_load(settings.algorithmConfig), dict(max_daz=7.1))

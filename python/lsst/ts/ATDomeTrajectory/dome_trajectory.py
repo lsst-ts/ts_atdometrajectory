@@ -92,7 +92,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         return "ts_config_attcs"
 
     async def configure(self, config):
-        """Configure this CSC and output the ``settingsApplied`` event.
+        """Configure this CSC and output the ``algorithm`` event.
 
         Parameters
         ----------
@@ -100,7 +100,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
             Configuration, as described by ``schema/ATDomeTrajectory.yaml``
         """
         self.algorithm = AlgorithmRegistry[config.algorithm_name](**config.algorithm_config)
-        self.evt_settingsApplied.set_put(
+        self.evt_algorithm.set_put(
             algorithmName=config.algorithm_name,
             algorithmConfig=yaml.dump(config.algorithm_config),
         )
