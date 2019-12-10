@@ -47,8 +47,8 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         The initial state of the CSC. Typically one of:
         - State.ENABLED if you want the CSC immediately usable.
         - State.STANDBY if you want full emulation of a CSC.
-    initial_simulation_mode : `int` (optional)
-        Initial simulation mode. This is provided for unit testing,
+    simulation_mode : `int` (optional)
+        Simulation mode. This is provided for unit testing,
         as real CSCs should start up not simulating, the default.
 
     Notes
@@ -61,12 +61,11 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
     * 1: simulation mode: start a mock ATDome controller and talk to it
       using SAL.
     """
-    def __init__(self, config_dir=None, initial_state=salobj.base_csc.State.STANDBY,
-                 initial_simulation_mode=0):
+    def __init__(self, config_dir=None, initial_state=salobj.base_csc.State.STANDBY, simulation_mode=0):
         schema_path = pathlib.Path(__file__).parents[4].joinpath("schema", "ATDomeTrajectory.yaml")
         super().__init__(name="ATDomeTrajectory", schema_path=schema_path, config_dir=config_dir,
                          index=None, initial_state=initial_state,
-                         initial_simulation_mode=initial_simulation_mode)
+                         simulation_mode=simulation_mode)
 
         self.dome_cmd_az = None
         """Commanded dome azimuth, as read from telemetry.
@@ -92,7 +91,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         return "ts_config_attcs"
 
     async def configure(self, config):
-        """Configure this CSC and output the ``settingsApplied`` event.
+        """Configure this CSC and output the ``algorithm`` event.
 
         Parameters
         ----------
@@ -100,7 +99,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
             Configuration, as described by ``schema/ATDomeTrajectory.yaml``
         """
         self.algorithm = AlgorithmRegistry[config.algorithm_name](**config.algorithm_config)
-        self.evt_settingsApplied.set_put(
+        self.evt_algorithm.set_put(
             algorithmName=config.algorithm_name,
             algorithmConfig=yaml.dump(config.algorithm_config),
         )
