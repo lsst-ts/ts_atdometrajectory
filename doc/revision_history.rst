@@ -6,6 +6,19 @@
 ts_ATDomeTrajectory Revision History
 ####################################
 
+v1.2.0
+======
+
+Update for ts_salobj 5.2: rename initial_simulation_mode to simulation_mode.
+
+Requirements:
+
+* ts_salobj 5.2
+* ts_idl 0.4
+* IDL files for ATDome, ATDomeTrajectory and ATMCS
+* ts_xml 4.1
+* ts_ATDome 0.8
+
 v1.1.0
 ======
 Update for SAL 4.
