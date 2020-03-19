@@ -21,6 +21,7 @@
 
 import unittest
 import pathlib
+
 # import types  for SimpleNamespace
 
 import jsonschema
@@ -31,6 +32,7 @@ from lsst.ts import salobj
 
 class ValidationTestCase(unittest.TestCase):
     """Test validation of the config schema."""
+
     def setUp(self):
         schemaname = "ATDomeTrajectory.yaml"
         schemapath = pathlib.Path(__file__).parents[1].joinpath("schema", schemaname)
@@ -54,8 +56,7 @@ class ValidationTestCase(unittest.TestCase):
 
     def test_all_specified(self):
         max_daz = 3.5
-        data = dict(algorithm_name="simple",
-                    algorithm_config=dict(max_daz=max_daz))
+        data = dict(algorithm_name="simple", algorithm_config=dict(max_daz=max_daz))
         result = self.validator.validate(data)
         self.assertEqual(result["algorithm_name"], "simple")
         self.assertEqual(result["algorithm_config"], dict(max_daz=max_daz))
@@ -67,8 +68,7 @@ class ValidationTestCase(unittest.TestCase):
 
     def test_bad_algorithm_config(self):
         """The current schema only checks for a dict."""
-        data = dict(algorithm_name="simple",
-                    algorithm_config=45)
+        data = dict(algorithm_name="simple", algorithm_config=45)
         with self.assertRaises(jsonschema.exceptions.ValidationError):
             self.validator.validate(data)
 

@@ -8,6 +8,9 @@ import lsst.ts.ATDomeTrajectory
 
 
 _g = globals()
-_g.update(build_package_configs(
-    project_name='ts_ATDomeTrajectory',
-    version=lsst.ts.ATDomeTrajectory.version.__version__))
+_g.update(
+    build_package_configs(
+        project_name="ts_ATDomeTrajectory",
+        version=lsst.ts.ATDomeTrajectory.version.__version__,
+    )
+)
