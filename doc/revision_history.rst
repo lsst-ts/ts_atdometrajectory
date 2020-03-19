@@ -6,6 +6,22 @@
 ts_ATDomeTrajectory Revision History
 ####################################
 
+v1.3.0
+======
+
+* Update CSC unit tests to use `lsst.ts.salobj.BaseCscTestCase`.
+  Thus we now require ts_salobj 5.4.
+* Code formatted by ``black``, with a pre-commit hook to enforce this. See the README file for configuration instructions.
+
+Requirements:
+
+* ts_salobj 5.4
+* ts_idl 1.0
+* IDL files for ATDome, ATDomeTrajectory and ATMCS
+* ts_xml 4.1
+* ts_ATDome 1.0
+
+
 v1.2.0
 ======
 
