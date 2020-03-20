@@ -40,12 +40,12 @@ class BaseAlgorithm(abc.ABC):
         Configuration. For details see the ``configure`` method
         for the algorithm in question.
     """
+
     def __init__(self, **kwargs):
         self.configure(**kwargs)
 
     @abc.abstractmethod
-    def desired_dome_az(self, dome_az: Angle,
-                        target_azalt: AltAz):
+    def desired_dome_az(self, dome_az: Angle, target_azalt: AltAz):
         """Compute the desired dome azimuth.
 
         Parameters
@@ -75,13 +75,16 @@ class SimpleAlgorithm(BaseAlgorithm):
     If the dome would vignette the telescope at the telescope target position
     then specify dome azimuth = target azimuth. Otherwise don't move the dome.
     """
+
     def desired_dome_az(self, dome_az: Angle, target_azalt: AltAz):
         """Return a new desired dome azimuth if movement wanted, else None."""
         # Compute scaled_daz: the difference between target and dome azimuth,
         # wrapped to [-180, 180] and multiplied by cos(target alt).
         # If scaled_daz is large enough to vignette then ask the dome
         # to move to the telescope azimuth.
-        scaled_daz = salobj.angle_diff(target_azalt.az, dome_az)*math.cos(target_azalt.alt.rad)
+        scaled_daz = salobj.angle_diff(target_azalt.az, dome_az) * math.cos(
+            target_azalt.alt.rad
+        )
         if abs(scaled_daz) < self.max_daz:
             return
         return target_azalt.az
