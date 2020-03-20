@@ -61,11 +61,26 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
     * 1: simulation mode: start a mock ATDome controller and talk to it
       using SAL.
     """
-    def __init__(self, config_dir=None, initial_state=salobj.base_csc.State.STANDBY, simulation_mode=0):
-        schema_path = pathlib.Path(__file__).parents[4].joinpath("schema", "ATDomeTrajectory.yaml")
-        super().__init__(name="ATDomeTrajectory", schema_path=schema_path, config_dir=config_dir,
-                         index=None, initial_state=initial_state,
-                         simulation_mode=simulation_mode)
+
+    def __init__(
+        self,
+        config_dir=None,
+        initial_state=salobj.base_csc.State.STANDBY,
+        simulation_mode=0,
+    ):
+        schema_path = (
+            pathlib.Path(__file__)
+            .parents[4]
+            .joinpath("schema", "ATDomeTrajectory.yaml")
+        )
+        super().__init__(
+            name="ATDomeTrajectory",
+            schema_path=schema_path,
+            config_dir=config_dir,
+            index=None,
+            initial_state=initial_state,
+            simulation_mode=simulation_mode,
+        )
 
         self.dome_cmd_az = None
         """Commanded dome azimuth, as read from telemetry.
@@ -79,12 +94,17 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         An astropy.coordinates.Angle, or None before the first read.
         """
 
-        self.atmcs_remote = salobj.Remote(domain=self.domain, name="ATMCS", include=["target"])
-        self.dome_remote = salobj.Remote(domain=self.domain, name="ATDome",
-                                         include=["azimuthCommandedState"])
+        self.atmcs_remote = salobj.Remote(
+            domain=self.domain, name="ATMCS", include=["target"]
+        )
+        self.dome_remote = salobj.Remote(
+            domain=self.domain, name="ATDome", include=["azimuthCommandedState"]
+        )
 
         self.atmcs_remote.evt_target.callback = self.update_target
-        self.dome_remote.evt_azimuthCommandedState.callback = self.commanded_azimuth_state_callback
+        self.dome_remote.evt_azimuthCommandedState.callback = (
+            self.commanded_azimuth_state_callback
+        )
 
     @staticmethod
     def get_config_pkg():
@@ -98,7 +118,9 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         config : `types.SimpleNamespace`
             Configuration, as described by ``schema/ATDomeTrajectory.yaml``
         """
-        self.algorithm = AlgorithmRegistry[config.algorithm_name](**config.algorithm_config)
+        self.algorithm = AlgorithmRegistry[config.algorithm_name](
+            **config.algorithm_config
+        )
         self.evt_algorithm.set_put(
             algorithmName=config.algorithm_name,
             algorithmConfig=yaml.dump(config.algorithm_config),
@@ -110,10 +132,14 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         This is triggered in any summary state, but only
         commands a new dome position if enabled.
         """
-        target_azalt = AltAz(az=Angle(target.azimuth, u.deg), alt=Angle(target.elevation, u.deg))
+        target_azalt = AltAz(
+            az=Angle(target.azimuth, u.deg), alt=Angle(target.elevation, u.deg)
+        )
         if self.target_azalt is None or self.target_azalt != target_azalt:
             self.target_azalt = target_azalt
-            self.log.info(f"target_azalt=({self.target_azalt.az.deg}, {self.target_azalt.alt.deg})")
+            self.log.info(
+                f"target_azalt=({self.target_azalt.az.deg}, {self.target_azalt.alt.deg})"
+            )
             await self.follow_target()
 
     async def commanded_azimuth_state_callback(self, state):
@@ -146,8 +172,9 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         if self.dome_cmd_az is None:
             desired_dome_az = self.target_azalt.az
         else:
-            desired_dome_az = self.algorithm.desired_dome_az(dome_az=self.dome_cmd_az,
-                                                             target_azalt=self.target_azalt)
+            desired_dome_az = self.algorithm.desired_dome_az(
+                dome_az=self.dome_cmd_az, target_azalt=self.target_azalt
+            )
         if desired_dome_az is not None:
             self.dome_remote.cmd_moveAzimuth.set(azimuth=desired_dome_az.deg)
             await self.dome_remote.cmd_moveAzimuth.start(timeout=1)

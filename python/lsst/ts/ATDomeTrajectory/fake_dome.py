@@ -45,6 +45,7 @@ class FakeATDome(salobj.BaseCsc):
         The initial state of the CSC. This is provided for unit testing,
         as real CSCs should start up in `State.STANDBY`, the default.
     """
+
     def __init__(self, initial_state):
         super().__init__(name="ATDome", index=None, initial_state=initial_state)
         self.curr_az = Angle(0, u.deg)
@@ -56,8 +57,8 @@ class FakeATDome(salobj.BaseCsc):
     async def start(self):
         await super().start()
         self.evt_azimuthCommandedState.set_put(
-            commandedState=1,  # 1 = Unknown
-            azimuth=math.nan, force_output=True)
+            commandedState=1, azimuth=math.nan, force_output=True  # 1 = Unknown
+        )
 
     async def close_tasks(self):
         await super().close_tasks()
@@ -69,7 +70,9 @@ class FakeATDome(salobj.BaseCsc):
         self.cmd_az = Angle(data.azimuth, u.deg)
         self.evt_azimuthCommandedState.set_put(
             commandedState=2,  # 2 = GoToPosition
-            azimuth=data.azimuth, force_output=True)
+            azimuth=data.azimuth,
+            force_output=True,
+        )
 
     def report_summary_state(self):
         super().report_summary_state()
@@ -82,14 +85,15 @@ class FakeATDome(salobj.BaseCsc):
         """Move the dome to the specified azimuth."""
         max_az_corr = Angle(abs(self.az_vel * self.telemetry_interval), u.deg)
         while True:
-            if self.summary_state == salobj.State.ENABLED and self.cmd_az != self.curr_az:
+            if (
+                self.summary_state == salobj.State.ENABLED
+                and self.cmd_az != self.curr_az
+            ):
                 az_err = salobj.angle_diff(self.cmd_az, self.curr_az)
                 abs_az_corr = min(abs(az_err), max_az_corr)
                 az_corr = abs_az_corr if az_err >= 0 else -abs_az_corr
                 self.curr_az += az_corr
-            self.tel_position.set_put(
-                azimuthPosition=self.curr_az.deg,
-            )
+            self.tel_position.set_put(azimuthPosition=self.curr_az.deg,)
             await asyncio.sleep(self.telemetry_interval)
 
     def do_moveShutterDropoutDoor(self, data):
