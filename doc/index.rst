@@ -26,7 +26,7 @@ Contributing
 ============
 
 ``lsst.ts.ATDomeTrajectory`` is developed at https://github.com/lsst-ts/ts_ATDomeTrajectory.
-You can find Jira issues for this module under the `ts_ATDomeTrajectory <https://jira.lsstcorp.org/issues/?jql=project%20%3D%20DM%20AND%20component%20%3D%20ts_ATDomeTrajectory>`_ component.
+You can find Jira issues for this module using `labels=ts_ATDomeTrajectory <https://jira.lsstcorp.org/issues/?jql=project%20%3D%20DM%20AND%20labels%20%20%3D%20ts_ATDomeTrajectory>`_.
 
 .. If there are topics related to developing this module (rather than using it), link to this from a toctree placed here.
 

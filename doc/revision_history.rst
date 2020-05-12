@@ -6,6 +6,35 @@
 ts_ATDomeTrajectory Revision History
 ####################################
 
+v1.3.2
+======
+
+Changes:
+
+* Fix the ``Contributing`` entry in ``index.rst``.
+
+Requirements:
+
+* ts_salobj 5.4
+* ts_idl 1.0
+* IDL files for ATDome, ATDomeTrajectory and ATMCS
+* ts_xml 4.1
+* ts_ATDome 1.0
+
+v1.3.1
+======
+
+Add conda build support.
+
+Requirements:
+
+* ts_salobj 5.4
+* ts_idl 1.0
+* IDL files for ATDome, ATDomeTrajectory and ATMCS
+* ts_xml 4.1
+* ts_ATDome 1.0
+
+
 v1.3.0
 ======
 
