@@ -11,7 +11,6 @@ v1.3.2
 
 Changes:
 
-* Test that code is formatted with ``black``.
 * Fix the ``Contributing`` entry in ``index.rst``.
 
 Requirements:
