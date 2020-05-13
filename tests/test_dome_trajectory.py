@@ -65,8 +65,9 @@ class ATDomeTrajectoryTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
         """
         process = await asyncio.create_subprocess_exec("run_atdometrajectory.py")
         try:
-            async with salobj.Domain() as domain:
-                remote = salobj.Remote(domain=domain, name="ATDomeTrajectory")
+            async with salobj.Domain() as domain, salobj.Remote(
+                domain=domain, name="ATDomeTrajectory"
+            ) as remote:
                 summaryState_data = await remote.evt_summaryState.next(
                     flush=False, timeout=LONG_TIMEOUT
                 )
