@@ -1,10 +1,10 @@
 .. py:currentmodule:: lsst.ts.ATDomeTrajectory
 
-.. _lsst.ts.ATDomeTrajectory.revision_history:
+.. _lsst.ts.ATDomeTrajectory.version_history:
 
-################
-Revision History
-################
+###############
+Version History
+###############
 
 v1.3.3
 ======
