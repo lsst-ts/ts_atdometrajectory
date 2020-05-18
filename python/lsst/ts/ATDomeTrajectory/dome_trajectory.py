@@ -150,7 +150,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         """
         if state.commandedState != 2:  # 1 is GoToPosition
             self.dome_cmd_az = None
-            self.log.info(f"dome_cmd_az=nan")
+            self.log.info("dome_cmd_az=nan")
         else:
             self.dome_cmd_az = Angle(state.azimuth, u.deg)
             self.log.info(f"dome_cmd_az={self.dome_cmd_az.deg}")

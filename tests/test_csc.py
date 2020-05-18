@@ -60,43 +60,12 @@ class ATDomeTrajectoryTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
             simulation_mode=simulation_mode,
         )
 
-    async def test_main(self):
+    async def test_bin_script(self):
         """Test that run_atdometrajectory.py runs the CSC.
         """
-        process = await asyncio.create_subprocess_exec("run_atdometrajectory.py")
-        try:
-            async with salobj.Domain() as domain:
-                remote = salobj.Remote(domain=domain, name="ATDomeTrajectory")
-                summaryState_data = await remote.evt_summaryState.next(
-                    flush=False, timeout=LONG_TIMEOUT
-                )
-                self.assertEqual(summaryState_data.summaryState, salobj.State.STANDBY)
-                self.assertIsNone(process.returncode)
-
-                await remote.cmd_start.start(timeout=STD_TIMEOUT)
-                summaryState_data = await remote.evt_summaryState.next(
-                    flush=False, timeout=STD_TIMEOUT
-                )
-                self.assertEqual(summaryState_data.summaryState, salobj.State.DISABLED)
-                self.assertIsNone(process.returncode)
-
-                await remote.cmd_standby.start(timeout=STD_TIMEOUT)
-                summaryState_data = await remote.evt_summaryState.next(
-                    flush=False, timeout=STD_TIMEOUT
-                )
-                self.assertEqual(summaryState_data.summaryState, salobj.State.STANDBY)
-
-                await remote.cmd_exitControl.start(timeout=STD_TIMEOUT)
-                summaryState_data = await remote.evt_summaryState.next(
-                    flush=False, timeout=STD_TIMEOUT
-                )
-                self.assertEqual(summaryState_data.summaryState, salobj.State.OFFLINE)
-
-                await asyncio.wait_for(process.wait(), timeout=5)
-        except Exception:
-            if process.returncode is None:
-                process.terminate()
-            raise
+        await self.check_bin_script(
+            name="ATDomeTrajectory", index=None, exe_name="run_atdometrajectory.py",
+        )
 
     async def test_standard_state_transitions(self):
         """Test standard CSC state transitions.
