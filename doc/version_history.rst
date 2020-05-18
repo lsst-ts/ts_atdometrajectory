@@ -1,10 +1,21 @@
 .. py:currentmodule:: lsst.ts.ATDomeTrajectory
 
-.. _lsst.ts.ATDomeTrajectory.revision_history:
+.. _lsst.ts.ATDomeTrajectory.version_history:
 
-####################################
-ts_ATDomeTrajectory Revision History
-####################################
+###############
+Version History
+###############
+
+v1.3.3
+======
+
+Changes:
+
+* Add ``tests/test_black.py`` to verify that files are formatted with black.
+  This requires ts_salobj 5.11 or later.
+* Modernized the test of the bin script, which also made it compatible with salobj 5.12.
+* Fix f strings with no {}.
+* Update ``.travis.yml`` to remove ``sudo: false`` to github travis checks pass once again.
 
 v1.3.2
 ======
@@ -15,7 +26,7 @@ Changes:
 
 Requirements:
 
-* ts_salobj 5.4
+* ts_salobj 5.11
 * ts_idl 1.0
 * IDL files for ATDome, ATDomeTrajectory and ATMCS
 * ts_xml 4.1
