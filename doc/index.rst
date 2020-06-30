@@ -14,11 +14,10 @@ including a simple `FakeATDome` CSC for unit testing.
 Using lsst.ts.ATDomeTrajectory
 ==============================
 
-You can setup and build this package using eups and sconsUtils.
-After setting up the package you can build it and run unit tests by typing ``scons``.
-Building it constructs a version.py file and runs unit tests.
+To run `ATDomeTrajectory` type ``runATDomeTrajectory.py``
 
-To run the `ATDomeTrajectory` CSC type ``runATDomeTrajectory.py``
+Enable `ATDomeTrajectory` to have it command ``ATDome`` azimuth to follow the telescope.
+Disable `ATDomeTrajectory` to prevent it from sending any more commands to ``ATDome``; this will not halt existing dome motion.
 
 .. _lsst.ts.ATDomeTrajectory-contributing:
 
@@ -28,11 +27,6 @@ Contributing
 ``lsst.ts.ATDomeTrajectory`` is developed at https://github.com/lsst-ts/ts_ATDomeTrajectory.
 You can find Jira issues for this module using `labels=ts_ATDomeTrajectory <https://jira.lsstcorp.org/issues/?jql=project%20%3D%20DM%20AND%20labels%20%20%3D%20ts_ATDomeTrajectory>`_.
 
-.. If there are topics related to developing this module (rather than using it), link to this from a toctree placed here.
-
-.. .. toctree::
-..    :maxdepth: 1
-
 .. _lsst.ts.ATDomeTrajectory-pyapi:
 
 Python API reference
@@ -40,10 +34,6 @@ Python API reference
 
 .. automodapi:: lsst.ts.ATDomeTrajectory
    :no-main-docstr:
-   :no-inheritance-diagram:
-.. automodapi:: lsst.ts.ATDomeTrajectory.algorithms
-   :no-main-docstr:
-   :no-inheritance-diagram:
 
 Version History
 ===============
