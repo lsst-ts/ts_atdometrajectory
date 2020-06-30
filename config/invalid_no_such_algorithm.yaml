@@ -1,4 +1,4 @@
 # this config file exists purely for unit testing
 algorithm_name: "no_such_algorithm"
 algorithm_config:
-    max_daz: 5  # degrees
+    max_delta_azimuth: 5  # degrees

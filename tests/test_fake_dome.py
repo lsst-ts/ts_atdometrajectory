@@ -27,72 +27,54 @@ import asynctest
 
 from lsst.ts import salobj
 from lsst.ts import ATDomeTrajectory
+from lsst.ts.idl.enums import ATDome
 
-STD_TIMEOUT = 2  # standard command timeout (sec)
-LONG_TIMEOUT = 20  # time to start a SAL component (sec)
-
-
-class Harness:
-    def __init__(self, initial_state):
-        self.csc = ATDomeTrajectory.FakeATDome(initial_state=salobj.State.ENABLED)
-        self.remote = salobj.Remote(domain=self.csc.domain, name="ATDome")
-
-    async def __aenter__(self):
-        await asyncio.gather(self.csc.start_task, self.remote.start_task)
-        return self
-
-    async def __aexit__(self, *args):
-        await self.csc.close()
+STD_TIMEOUT = 5  # standard command timeout (sec)
 
 
-class FakeDomeTestCase(asynctest.TestCase):
-    def setUp(self):
-        salobj.set_random_lsst_dds_domain()
+class FakeDomeTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
+    def basic_make_csc(self, initial_state, config_dir, simulation_mode):
+        return ATDomeTrajectory.FakeATDome(initial_state=initial_state)
 
     async def test_move_azimuth(self):
         """Test issuing moveAzimuth commands to ATDomeCsc.
         """
-        async with Harness(initial_state=salobj.State.ENABLED) as harness:
-            self.assertEqual(harness.csc.summary_state, salobj.State.ENABLED)
-            state = await harness.remote.evt_summaryState.next(
-                flush=False, timeout=LONG_TIMEOUT
-            )
-            self.assertEqual(state.summaryState, salobj.State.ENABLED)
+        async with self.make_csc(initial_state=salobj.State.ENABLED):
+            self.assert_next_summary_state(salobj.State.ENABLED)
 
-            az_cmd_state = await harness.remote.evt_azimuthCommandedState.next(
-                flush=False, timeout=STD_TIMEOUT
+            await self.assert_next_sample(
+                self.remote.evt_azimuthCommandedState,
+                commandedState=ATDome.AzimuthCommandedState.UNKNOWN,
             )
-            self.assertEqual(az_cmd_state.commandedState, 1)  # 1=Unknown
 
-            position = await harness.remote.tel_position.next(
+            position = await self.remote.tel_position.next(
                 flush=True, timeout=STD_TIMEOUT
             )
             salobj.assertAnglesAlmostEqual(position.azimuthPosition, 0)
 
             for az in (3, -1):
                 predicted_duration = (
-                    abs(az - position.azimuthPosition) / harness.csc.az_vel
+                    abs(az - position.azimuthPosition) / self.csc.az_vel
                 )
                 start_time = time.time()
                 # be conservative about the end time
                 predicted_end_time = start_time + predicted_duration
-                safe_moving_end_time = (
-                    predicted_end_time - harness.csc.telemetry_interval
-                )
+                safe_moving_end_time = predicted_end_time - self.csc.telemetry_interval
                 safe_done_end_time = (
-                    predicted_end_time + harness.csc.telemetry_interval * 2
+                    predicted_end_time + self.csc.telemetry_interval * 2
                 )
-                harness.remote.cmd_moveAzimuth.set(azimuth=az)
-                await harness.remote.cmd_moveAzimuth.start(timeout=STD_TIMEOUT)
+                await self.remote.cmd_moveAzimuth.set_start(
+                    azimuth=az, timeout=STD_TIMEOUT
+                )
 
-                az_cmd_state = await harness.remote.evt_azimuthCommandedState.next(
-                    flush=False, timeout=STD_TIMEOUT
+                az_cmd_state = await self.assert_next_sample(
+                    self.remote.evt_azimuthCommandedState,
+                    commandedState=ATDome.AzimuthCommandedState.GOTOPOSITION,
                 )
-                self.assertEqual(az_cmd_state.commandedState, 2)  # 2=GoTo
                 salobj.assertAnglesAlmostEqual(az_cmd_state.azimuth, az)
 
                 while True:
-                    position = await harness.remote.tel_position.next(
+                    position = await self.remote.tel_position.next(
                         flush=True, timeout=STD_TIMEOUT
                     )
                     if time.time() < safe_moving_end_time:
@@ -101,7 +83,7 @@ class FakeDomeTestCase(asynctest.TestCase):
                     elif time.time() > safe_done_end_time:
                         salobj.assertAnglesAlmostEqual(position.azimuthPosition, az)
                         break
-                    await asyncio.sleep(harness.csc.telemetry_interval)
+                    await asyncio.sleep(self.csc.telemetry_interval)
 
 
 if __name__ == "__main__":

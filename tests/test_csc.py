@@ -26,13 +26,14 @@ import pathlib
 import unittest
 
 import asynctest
-import astropy.units as u
 import yaml
 
 from lsst.ts import salobj
 from lsst.ts import ATDomeTrajectory
+from lsst.ts.idl.enums import ATDome
 
-STD_TIMEOUT = 2  # standard command timeout (sec)
+NODATA_TIMEOUT = 0.5
+STD_TIMEOUT = 5  # standard command timeout (sec)
 LONG_TIMEOUT = 20  # time limit for starting a SAL component (sec)
 TEST_CONFIG_DIR = pathlib.Path(__file__).parents[1].joinpath("tests", "data", "config")
 
@@ -78,20 +79,19 @@ class ATDomeTrajectoryTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
         """
         async with self.make_csc(initial_state=salobj.State.ENABLED):
 
-            az_cmd_state = await self.dome_remote.evt_azimuthCommandedState.next(
-                flush=False, timeout=STD_TIMEOUT
+            await self.assert_next_sample(
+                self.dome_remote.evt_azimuthCommandedState,
+                commandedState=ATDome.AzimuthCommandedState.UNKNOWN,
             )
-            self.assertEqual(az_cmd_state.commandedState, 1)  # 1=Unknown
-
-            alt_deg = 40
-            min_daz_to_move = self.csc.algorithm.max_daz.deg / math.cos(
-                alt_deg * RAD_PER_DEG
+            elevation = 40
+            min_daz_to_move = self.csc.algorithm.max_delta_azimuth / math.cos(
+                elevation * RAD_PER_DEG
             )
-            for az_deg in (min_daz_to_move + 0.001, 180, -0.001):
-                with self.subTest(az_deg=az_deg):
-                    await self.check_move(az_deg, alt_deg=alt_deg)
+            for azimuth in (min_daz_to_move + 0.001, 180, -0.001):
+                print(f"test elevation={elevation}, azimuth={azimuth}")
+                await self.check_move(elevation=elevation, azimuth=azimuth)
 
-            await self.check_null_moves(alt_deg=alt_deg)
+            await self.check_null_moves(elevation=elevation)
 
     async def test_default_config_dir(self):
         async with self.make_csc(initial_state=salobj.State.STANDBY):
@@ -110,11 +110,7 @@ class ATDomeTrajectoryTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
         async with self.make_csc(
             initial_state=salobj.State.STANDBY, config_dir=TEST_CONFIG_DIR
         ):
-            self.assertEqual(self.csc.summary_state, salobj.State.STANDBY)
-            state = await self.remote.evt_summaryState.next(
-                flush=False, timeout=LONG_TIMEOUT
-            )
-            self.assertEqual(state.summaryState, salobj.State.STANDBY)
+            await self.assert_next_summary_state(salobj.State.STANDBY)
 
             for bad_config_name in (
                 "no_such_file.yaml",
@@ -123,47 +119,47 @@ class ATDomeTrajectoryTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
                 "invalid_bad_max_daz.yaml",
             ):
                 with self.subTest(bad_config_name=bad_config_name):
-                    self.remote.cmd_start.set(settingsToApply=bad_config_name)
                     with salobj.assertRaisesAckError():
-                        await self.remote.cmd_start.start(timeout=STD_TIMEOUT)
+                        await self.remote.cmd_start.set_start(
+                            settingsToApply=bad_config_name, timeout=STD_TIMEOUT
+                        )
 
-            self.remote.cmd_start.set(settingsToApply="valid.yaml")
-            await self.remote.cmd_start.start(timeout=STD_TIMEOUT)
-            self.assertEqual(self.csc.summary_state, salobj.State.DISABLED)
-            state = await self.remote.evt_summaryState.next(
-                flush=False, timeout=STD_TIMEOUT
+            await self.remote.cmd_start.set_start(
+                settingsToApply="valid.yaml", timeout=STD_TIMEOUT
             )
-            self.assertEqual(state.summaryState, salobj.State.DISABLED)
-            settings = await self.remote.evt_algorithm.next(
-                flush=False, timeout=STD_TIMEOUT
+
+            settings = await self.assert_next_sample(
+                self.remote.evt_algorithm, algorithmName="simple"
             )
-            self.assertEqual(settings.algorithmName, "simple")
-            # max_daz is hard coded in the yaml file
+            # max_delta_azimuth=7.1 is hard coded in the yaml file
             self.assertEqual(
-                yaml.safe_load(settings.algorithmConfig), dict(max_daz=7.1)
+                yaml.safe_load(settings.algorithmConfig), dict(max_delta_azimuth=7.1)
             )
 
-    async def assert_dome_az(self, expected_az, move_expected):
+    async def assert_dome_az(self, azimuth, move_expected):
         """Check the ATDome and ATDomeController commanded azimuth.
         """
         if move_expected:
-            az_cmd_state = await self.dome_remote.evt_azimuthCommandedState.next(
-                flush=False, timeout=STD_TIMEOUT
+            az_cmd_state = await self.assert_next_sample(
+                self.dome_remote.evt_azimuthCommandedState,
+                commandedState=ATDome.AzimuthCommandedState.GOTOPOSITION,
             )
-            az_cmd_state = self.dome_remote.evt_azimuthCommandedState.get()
-            self.assertEqual(az_cmd_state.commandedState, 2)  # 1=GoToPosition
-            salobj.assertAnglesAlmostEqual(az_cmd_state.azimuth, expected_az)
+            salobj.assertAnglesAlmostEqual(az_cmd_state.azimuth, azimuth)
         else:
             with self.assertRaises(asyncio.TimeoutError):
                 await self.dome_remote.evt_azimuthCommandedState.next(
-                    flush=False, timeout=0.2
+                    flush=False, timeout=NODATA_TIMEOUT
                 )
 
-    def assert_target_azalt(self, expected_az, expected_alt):
-        salobj.assertAnglesAlmostEqual(self.csc.target_azalt.az, expected_az)
-        salobj.assertAnglesAlmostEqual(self.csc.target_azalt.alt, expected_alt)
+    def assert_telescope_target(self, elevation, azimuth):
+        salobj.assertAnglesAlmostEqual(
+            self.csc.telescope_target.azimuth.position, azimuth
+        )
+        salobj.assertAnglesAlmostEqual(
+            self.csc.telescope_target.elevation.position, elevation
+        )
 
-    async def check_move(self, az_deg, alt_deg):
+    async def check_move(self, elevation, azimuth):
         """Set telescope target azimuth and check that the dome goes there.
 
         Then check that the dome does not move for small changes
@@ -171,10 +167,10 @@ class ATDomeTrajectoryTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
 
         Parameters
         ----------
-        az_deg : `float`
-            Desired azimuth for telescope and dome (deg)
-        alt_deg : `float`
+        elevation : `float`
             Desired altitude for telescope (deg)
+        azimuth : `float`
+            Desired azimuth for telescope and dome (deg)
 
         Raises
         ------
@@ -183,59 +179,62 @@ class ATDomeTrajectoryTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
             (since that will result in no dome motion, which will mess up
             the test).
         """
-        max_daz_deg = self.csc.algorithm.max_daz.deg
-        scaled_daz_deg = (az_deg - self.dome_csc.cmd_az.deg) * math.cos(
-            alt_deg * RAD_PER_DEG
+        max_delta_azimuth = self.csc.algorithm.max_delta_azimuth
+        scaled_delta_azimuth = (azimuth - self.dome_csc.cmd_az) * math.cos(
+            elevation * RAD_PER_DEG
         )
-        if abs(scaled_daz_deg) <= max_daz_deg:
+        if abs(scaled_delta_azimuth) <= max_delta_azimuth:
             raise ValueError(
-                f"scaled_daz_deg={scaled_daz_deg} must be > max_daz_deg={max_daz_deg}"
+                f"scaled_delta_azimuth={scaled_delta_azimuth} "
+                f"must be > max_delta_azimuth={max_delta_azimuth}"
             )
 
         self.atmcs_controller.evt_target.set_put(
-            elevation=alt_deg, azimuth=az_deg, force_output=True
+            elevation=elevation, azimuth=azimuth, force_output=True
         )
-        await self.assert_dome_az(az_deg, move_expected=True)
-        self.assert_target_azalt(az_deg, alt_deg)
-        await asyncio.wait_for(self.wait_dome_move(az_deg), timeout=LONG_TIMEOUT)
-        await self.check_null_moves(alt_deg)
+        await self.assert_dome_az(azimuth, move_expected=True)
+        self.assert_telescope_target(elevation=elevation, azimuth=azimuth)
+        await asyncio.wait_for(self.wait_dome_move(azimuth), timeout=LONG_TIMEOUT)
+        await self.check_null_moves(elevation)
 
-    async def wait_dome_move(self, az_deg):
+    async def wait_dome_move(self, azimuth):
         """Wait for an ATDome azimuth move to finish.
 
         Parameters
         ----------
-        az_deg : `float`
+        azimuth : `float`
             Target azimuth for telescope and dome (deg)
         """
         while True:
             curr_pos = await self.dome_remote.tel_position.next(
                 flush=True, timeout=STD_TIMEOUT
             )
-            if salobj.angle_diff(curr_pos.azimuthPosition, az_deg) < 0.1 * u.deg:
+            if salobj.angle_diff(curr_pos.azimuthPosition, azimuth).deg < 0.1:
                 break
 
-    async def check_null_moves(self, alt_deg):
+    async def check_null_moves(self, elevation):
         """Check that small telescope moves do not trigger dome motion.
 
         Parameters
         ----------
-        alt_deg : `float`
+        elevation : `float`
             Target altitude for telescope (deg)
         """
-        az_deg = self.dome_csc.cmd_az.deg
-        max_daz_deg = self.csc.algorithm.max_daz.deg
-        no_move_daz_deg = (max_daz_deg - 0.0001) * math.cos(alt_deg * RAD_PER_DEG)
-        for target_az_deg in (
-            az_deg - no_move_daz_deg,
-            az_deg + no_move_daz_deg,
-            az_deg,
+        azimuth = self.dome_csc.cmd_az
+        max_delta_azimuth = self.csc.algorithm.max_delta_azimuth
+        no_move_daz_deg = (max_delta_azimuth - 0.0001) * math.cos(
+            elevation * RAD_PER_DEG
+        )
+        for target_azimuth in (
+            azimuth - no_move_daz_deg,
+            azimuth + no_move_daz_deg,
+            azimuth,
         ):
             self.atmcs_controller.evt_target.set_put(
-                elevation=alt_deg, azimuth=target_az_deg, force_output=True
+                elevation=elevation, azimuth=target_azimuth, force_output=True
             )
-            await self.assert_dome_az(az_deg, move_expected=False)
-            self.assert_target_azalt(target_az_deg, alt_deg)
+            await self.assert_dome_az(azimuth, move_expected=False)
+            self.assert_telescope_target(elevation=elevation, azimuth=target_azimuth)
 
 
 if __name__ == "__main__":

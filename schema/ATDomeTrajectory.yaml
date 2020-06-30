@@ -25,12 +25,12 @@ allOf:
     properties:
       algorithm_config:
         properties:
-          max_daz:
+          max_delta_azimuth:
             type: number
         required:
-        - max_daz
+        - max_delta_azimuth
         default:
-          max_daz: 5
+          max_delta_azimuth: 5
         additionalProperties: false
 additionalProperties: false
 

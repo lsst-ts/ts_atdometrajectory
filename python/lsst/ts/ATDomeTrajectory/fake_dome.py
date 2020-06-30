@@ -23,9 +23,6 @@ __all__ = ["FakeATDome"]
 import asyncio
 import math
 
-from astropy.coordinates import Angle
-import astropy.units as u
-
 from lsst.ts import salobj
 
 
@@ -48,8 +45,8 @@ class FakeATDome(salobj.BaseCsc):
 
     def __init__(self, initial_state):
         super().__init__(name="ATDome", index=None, initial_state=initial_state)
-        self.curr_az = Angle(0, u.deg)
-        self.cmd_az = Angle(0, u.deg)
+        self.curr_az = 0
+        self.cmd_az = 0
         self.az_vel = 3  # deg/sec
         self.telemetry_interval = 0.2  # seconds
         self.move_azimuth_task = asyncio.Future()
@@ -67,7 +64,7 @@ class FakeATDome(salobj.BaseCsc):
     def do_moveAzimuth(self, data):
         """Support the moveAzimuth command."""
         self.assert_enabled("moveAzimuth")
-        self.cmd_az = Angle(data.azimuth, u.deg)
+        self.cmd_az = data.azimuth
         self.evt_azimuthCommandedState.set_put(
             commandedState=2,  # 2 = GoToPosition
             azimuth=data.azimuth,
@@ -83,18 +80,24 @@ class FakeATDome(salobj.BaseCsc):
 
     async def move_azimuth_loop(self):
         """Move the dome to the specified azimuth."""
-        max_az_corr = Angle(abs(self.az_vel * self.telemetry_interval), u.deg)
-        while True:
-            if (
-                self.summary_state == salobj.State.ENABLED
-                and self.cmd_az != self.curr_az
-            ):
-                az_err = salobj.angle_diff(self.cmd_az, self.curr_az)
-                abs_az_corr = min(abs(az_err), max_az_corr)
-                az_corr = abs_az_corr if az_err >= 0 else -abs_az_corr
-                self.curr_az += az_corr
-            self.tel_position.set_put(azimuthPosition=self.curr_az.deg,)
-            await asyncio.sleep(self.telemetry_interval)
+        try:
+            max_az_corr = abs(self.az_vel * self.telemetry_interval)
+            while True:
+                if (
+                    self.summary_state == salobj.State.ENABLED
+                    and self.cmd_az != self.curr_az
+                ):
+                    az_err = salobj.angle_diff(self.cmd_az, self.curr_az).deg
+                    abs_az_corr = min(abs(az_err), max_az_corr)
+                    az_corr = abs_az_corr if az_err >= 0 else -abs_az_corr
+                    self.curr_az += az_corr
+                self.tel_position.set_put(azimuthPosition=self.curr_az)
+                await asyncio.sleep(self.telemetry_interval)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            self.log.exception("move_azimuth_loop failed")
+            raise
 
     def do_moveShutterDropoutDoor(self, data):
         """This command is not supported."""
