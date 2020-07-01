@@ -20,14 +20,19 @@
 
 __all__ = ["ATDomeTrajectory"]
 
+import asyncio
 import pathlib
 
-from astropy.coordinates import Angle, AltAz
-import astropy.units as u
 import yaml
 
 from lsst.ts import salobj
-from .algorithms import AlgorithmRegistry
+from lsst.ts import simactuators
+from lsst.ts.idl.enums import ATDome
+from .elevation_azimuth import ElevationAzimuth
+from .base_algorithm import AlgorithmRegistry
+
+# Timeout for commands that should be executed quickly
+STD_TIMEOUT = 5
 
 
 class ATDomeTrajectory(salobj.ConfigurableCsc):
@@ -82,17 +87,30 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
             simulation_mode=simulation_mode,
         )
 
-        self.dome_cmd_az = None
-        """Commanded dome azimuth, as read from telemetry.
+        # Commanded dome azimuth (deg), from the ATDome azimuthCommandedState
+        # event; None before the event is seen.
+        self.dome_target_azimuth = None
 
-        An astropy.coordinates.Angle, or None before the first read.
-        """
+        # Telescope target, from the NewMTMount target event;
+        # an ElevationAzimuth; None before a target is seen.
+        self.telescope_target = None
 
-        self.target_azalt = None
-        """Telescope target azimuth, as read from telemetry.
+        # Task that starts dome azimuth motion
+        # and waits for the motionState and target events
+        # that indicate the motion has started.
+        # While running that axis will not be commanded.
+        # This avoids the problem of new telescope target events
+        # causing unwanted motion when the dome has been commanded
+        # but has not yet had a chance to report the fact.
+        self.move_dome_azimuth_task = salobj.make_done_future()
 
-        An astropy.coordinates.Angle, or None before the first read.
-        """
+        # Task that is set to (moved_elevation, moved_azimuth)
+        # whenever the follow_target method runs.
+        self.follow_task = asyncio.Future()
+
+        # Next telescope target, eventually from the scheduler;
+        # an ElevationAzimuth; None before the next target is seen;
+        self.next_telescope_target = None
 
         self.atmcs_remote = salobj.Remote(
             domain=self.domain, name="ATMCS", include=["target"]
@@ -101,9 +119,9 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
             domain=self.domain, name="ATDome", include=["azimuthCommandedState"]
         )
 
-        self.atmcs_remote.evt_target.callback = self.update_target
+        self.atmcs_remote.evt_target.callback = self.atmcs_target_callback
         self.dome_remote.evt_azimuthCommandedState.callback = (
-            self.commanded_azimuth_state_callback
+            self.atdome_commanded_azimuth_state_callback
         )
 
     @staticmethod
@@ -126,34 +144,39 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
             algorithmConfig=yaml.dump(config.algorithm_config),
         )
 
-    async def update_target(self, target):
+    async def atmcs_target_callback(self, target):
         """Callback for ATMCS target event.
 
         This is triggered in any summary state, but only
         commands a new dome position if enabled.
         """
-        target_azalt = AltAz(
-            az=Angle(target.azimuth, u.deg), alt=Angle(target.elevation, u.deg)
+        telescope_target = ElevationAzimuth(
+            elevation=simactuators.path.PathSegment(
+                position=target.elevation,
+                velocity=target.elevationVelocity,
+                tai=target.taiTime,
+            ),
+            azimuth=simactuators.path.PathSegment(
+                position=target.azimuth,
+                velocity=target.azimuthVelocity,
+                tai=target.taiTime,
+            ),
         )
-        if self.target_azalt is None or self.target_azalt != target_azalt:
-            self.target_azalt = target_azalt
-            self.log.info(
-                f"target_azalt=({self.target_azalt.az.deg}, {self.target_azalt.alt.deg})"
-            )
-            await self.follow_target()
+        self.telescope_target = telescope_target
+        await self.follow_target()
 
-    async def commanded_azimuth_state_callback(self, state):
+    async def atdome_commanded_azimuth_state_callback(self, state):
         """Callback for the ATDome commandedAzimuthState event.
 
         This is triggered in any summary state, but only
         commands a new dome position if enabled.
         """
-        if state.commandedState != 2:  # 1 is GoToPosition
-            self.dome_cmd_az = None
-            self.log.info("dome_cmd_az=nan")
+        if state.commandedState != ATDome.AzimuthCommandedState.GOTOPOSITION:
+            self.dome_target_azimuth = None
+            self.log.info("dome_target_azimuth=nan")
         else:
-            self.dome_cmd_az = Angle(state.azimuth, u.deg)
-            self.log.info(f"dome_cmd_az={self.dome_cmd_az.deg}")
+            self.dome_target_azimuth = state.azimuth
+            self.log.info(f"dome_target_azimuth={self.dome_target_azimuth}")
         await self.follow_target()
 
     async def follow_target(self):
@@ -167,14 +190,44 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
             return
         if not self.start_task.done():
             return
-        if self.target_azalt is None:
+        if self.telescope_target is None:
             return
-        if self.dome_cmd_az is None:
-            desired_dome_az = self.target_azalt.az
-        else:
-            desired_dome_az = self.algorithm.desired_dome_az(
-                dome_az=self.dome_cmd_az, target_azalt=self.target_azalt
+        if self.move_dome_azimuth_task.done():
+            desired_dome_azimuth = self.algorithm.desired_dome_azimuth(
+                dome_target_azimuth=self.dome_target_azimuth,
+                telescope_target=self.telescope_target,
             )
-        if desired_dome_az is not None:
-            self.dome_remote.cmd_moveAzimuth.set(azimuth=desired_dome_az.deg)
-            await self.dome_remote.cmd_moveAzimuth.start(timeout=1)
+            if desired_dome_azimuth is not None:
+                moved_azimuth = True
+                self.move_dome_azimuth_task = asyncio.create_task(
+                    self.move_dome_azimuth(desired_dome_azimuth)
+                )
+
+        if not self.follow_task.done():
+            self.follow_task.set_result(moved_azimuth)
+
+    async def handle_summary_state(self):
+        if not self.summary_state == salobj.State.ENABLED:
+            self.move_dome_azimuth_task.cancel()
+            self.follow_task.cancel()
+
+    def make_follow_task(self):
+        """Make and return a task that is set when the follow method runs.
+
+        The result of the task is (moved_elevation, moved_azimuth).
+        This method is intended for unit tests.
+        """
+        self.follow_task = asyncio.Future()
+        return self.follow_task
+
+    async def move_dome_azimuth(self, desired_dome_azimuth):
+        """Start moving the dome in azimuth.
+
+        Parameters
+        ----------
+        desired_dome_azimuth : `lsst.ts.simactuators.path.PathSegment`
+            Desired dome azimuth.
+        """
+        await self.dome_remote.cmd_moveAzimuth.set_start(
+            azimuth=desired_dome_azimuth, timeout=STD_TIMEOUT
+        )

@@ -1,4 +1,4 @@
-# This file is part of ts_salkafka.
+# This file is part of ts_ATDomeTrajectory.
 #
 # Developed for the LSST Telescope and Site Systems.
 # This product includes software developed by the LSST Project

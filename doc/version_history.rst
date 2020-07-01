@@ -6,6 +6,37 @@
 Version History
 ###############
 
+v1.4.0
+======
+
+Changes:
+
+* Add next target support to the algorithms (but not the CSC, yet).
+* Modernize the code and make it more like MTDomeTrajectory.
+
+Requirements:
+
+* ts_salobj 5.11
+* ts_idl 1.0
+* IDL files for ATDome, ATDomeTrajectory and ATMCS
+* ts_xml 4.1
+* ts_ATDome 1.0
+
+v1.3.4
+======
+
+Changes:
+
+* Add black to conda test dependencies
+
+Requirements:
+
+* ts_salobj 5.11
+* ts_idl 1.0
+* IDL files for ATDome, ATDomeTrajectory and ATMCS
+* ts_xml 4.1
+* ts_ATDome 1.0
+
 v1.3.3
 ======
 
