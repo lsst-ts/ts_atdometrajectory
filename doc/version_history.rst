@@ -6,6 +6,19 @@
 Version History
 ###############
 
+v1.4.1
+======
+
+Added missing ts_simactuators to the list of dependencies.
+
+Requirements:
+
+* ts_salobj 5.11
+* ts_idl 1.0
+* IDL files for ATDome, ATDomeTrajectory and ATMCS
+* ts_xml 4.1
+* ts_ATDome 1.0
+
 v1.4.0
 ======
 
