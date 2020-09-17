@@ -43,6 +43,8 @@ class FakeATDome(salobj.BaseCsc):
         as real CSCs should start up in `State.STANDBY`, the default.
     """
 
+    valid_simulation_modes = [0]
+
     def __init__(self, initial_state):
         super().__init__(name="ATDome", index=None, initial_state=initial_state)
         self.curr_az = 0
