@@ -55,24 +55,11 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
     simulation_mode : `int` (optional)
         Simulation mode. This is provided for unit testing,
         as real CSCs should start up not simulating, the default.
-
-    Notes
-    -----
-    **Simulation Modes**
-
-    Supported simulation modes:
-
-    * 0: regular operation
-    * 1: simulation mode: start a mock ATDome controller and talk to it
-      using SAL.
     """
 
-    def __init__(
-        self,
-        config_dir=None,
-        initial_state=salobj.base_csc.State.STANDBY,
-        simulation_mode=0,
-    ):
+    valid_simulation_modes = [0]
+
+    def __init__(self, config_dir=None, initial_state=salobj.base_csc.State.STANDBY):
         schema_path = (
             pathlib.Path(__file__)
             .parents[4]
@@ -84,7 +71,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
             config_dir=config_dir,
             index=None,
             initial_state=initial_state,
-            simulation_mode=simulation_mode,
+            simulation_mode=0,
         )
 
         # Commanded dome azimuth (deg), from the ATDome azimuthCommandedState

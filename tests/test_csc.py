@@ -52,13 +52,12 @@ class ATDomeTrajectoryTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
                 await item_to_close.close()
 
     def basic_make_csc(self, initial_state, config_dir, simulation_mode):
+        self.assertEqual(simulation_mode, 0)
         self.dome_csc = ATDomeTrajectory.FakeATDome(initial_state=salobj.State.ENABLED)
         self.dome_remote = salobj.Remote(domain=self.dome_csc.domain, name="ATDome")
         self.atmcs_controller = salobj.Controller("ATMCS")
         return ATDomeTrajectory.ATDomeTrajectory(
-            initial_state=initial_state,
-            config_dir=config_dir,
-            simulation_mode=simulation_mode,
+            initial_state=initial_state, config_dir=config_dir,
         )
 
     async def test_bin_script(self):
