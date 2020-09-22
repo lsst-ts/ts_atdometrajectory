@@ -6,6 +6,24 @@
 Version History
 ###############
 
+v1.4.2
+======
+
+Change:
+
+* Remove the ``simulation_mode`` constructor argument from `ATDomeTrajectory`
+  and updated associated documentation.
+  The CSC does not support simulation.
+* Improved the ``black`` pre-commit hook.
+
+Requirements:
+
+* ts_salobj 5.11 or 6
+* ts_idl 1.0
+* IDL files for ATDome, ATDomeTrajectory and ATMCS
+* ts_xml 4.1
+* ts_ATDome 1.0
+
 v1.4.1
 ======
 
