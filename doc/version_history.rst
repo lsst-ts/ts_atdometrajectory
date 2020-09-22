@@ -6,6 +6,21 @@
 Version History
 ###############
 
+v1.4.3
+======
+
+Change:
+
+* Pin version of black in meta.yaml.
+
+Requirements:
+
+* ts_salobj 5.11 or 6
+* ts_idl 1.0
+* IDL files for ATDome, ATDomeTrajectory and ATMCS
+* ts_xml 4.1
+* ts_ATDome 1.0
+
 v1.4.2
 ======
 
@@ -229,4 +244,3 @@ Requirements:
 * ATDome v0.4.0
 * ts_sal v3.8.41
 * ts_salobj v3.9
-
