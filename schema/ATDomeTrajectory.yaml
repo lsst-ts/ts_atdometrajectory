@@ -27,6 +27,9 @@ allOf:
         properties:
           max_delta_azimuth:
             type: number
+            description: ->
+              Maximum difference between dome and telescope azimuth before moving the dome (deg).
+              The default value is nearly where the dome vignettes the telescope.
         required:
         - max_delta_azimuth
         default:
