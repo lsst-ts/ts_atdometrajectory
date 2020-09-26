@@ -37,10 +37,10 @@ class FakeDomeTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
         return ATDomeTrajectory.MockATDome(initial_state=initial_state)
 
     async def test_move_azimuth(self):
-        """Test issuing moveAzimuth commands to ATDomeCsc.
+        """Test issuing moveAzimuth commands to ATDome.
         """
         async with self.make_csc(initial_state=salobj.State.ENABLED):
-            self.assert_next_summary_state(salobj.State.ENABLED)
+            await self.assert_next_summary_state(salobj.State.ENABLED)
 
             await self.assert_next_sample(
                 self.remote.evt_azimuthCommandedState,
