@@ -32,9 +32,9 @@ RAD_PER_DEG = math.pi / 180
 class SimpleAlgorithm(base_algorithm.BaseAlgorithm):
     """Simple algorithm to follow the target position from the pointing kernel.
 
-    If the target dome position would vignette the telescope_target
-    at the ``telescope_target`` position then specify dome azimuth
-    position = telescope_target azimuth position and zero velocity.
+    If the difference between the telescope target and dome target
+    azimuth position is larger than the configured maximum, then command
+    dome azimuth position = telescope_target azimuth position.
     Otherwise don't move the dome.
     """
 

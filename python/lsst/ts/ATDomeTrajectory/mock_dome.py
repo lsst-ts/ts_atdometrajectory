@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-__all__ = ["FakeATDome"]
+__all__ = ["MockATDome"]
 
 import asyncio
 import math
@@ -26,7 +26,7 @@ import math
 from lsst.ts import salobj
 
 
-class FakeATDome(salobj.BaseCsc):
+class MockATDome(salobj.BaseCsc):
     """A very limited fake ATDome CSC
 
     It receives the ``moveAzimuth`` command and outputs:

@@ -22,7 +22,7 @@
 from .elevation_azimuth import *
 from .base_algorithm import *
 from .simple_algorithm import *
-from .fake_dome import *
+from .mock_dome import *
 from .dome_trajectory import *
 
 try:

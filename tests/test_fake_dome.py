@@ -34,7 +34,7 @@ STD_TIMEOUT = 5  # standard command timeout (sec)
 
 class FakeDomeTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
     def basic_make_csc(self, initial_state, config_dir, simulation_mode):
-        return ATDomeTrajectory.FakeATDome(initial_state=initial_state)
+        return ATDomeTrajectory.MockATDome(initial_state=initial_state)
 
     async def test_move_azimuth(self):
         """Test issuing moveAzimuth commands to ATDomeCsc.

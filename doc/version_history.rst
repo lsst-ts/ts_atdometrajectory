@@ -6,10 +6,26 @@
 Version History
 ###############
 
+v1.4.4
+======
+
+Changes:
+
+* Modernize the documentation.
+* Rename ``FakeATDome`` to `MockATDome`.
+
+Requirements:
+
+* ts_salobj 5.11 or 6
+* ts_idl 1.0
+* IDL files for ATDome, ATDomeTrajectory and ATMCS
+* ts_xml 4.1
+* ts_ATDome 1.0
+
 v1.4.3
 ======
 
-Change:
+Changes:
 
 * Pin version of black in meta.yaml.
 
@@ -24,7 +40,7 @@ Requirements:
 v1.4.2
 ======
 
-Change:
+Changes:
 
 * Remove the ``simulation_mode`` constructor argument from `ATDomeTrajectory`
   and updated associated documentation.
@@ -42,7 +58,9 @@ Requirements:
 v1.4.1
 ======
 
-Added missing ts_simactuators to the list of dependencies.
+Changes:
+
+* Added missing ts_simactuators to the list of dependencies.
 
 Requirements:
 
