@@ -60,8 +60,8 @@ class MockATDome(salobj.BaseCsc):
         )
 
     async def close_tasks(self):
-        await super().close_tasks()
         self.move_azimuth_task.cancel()
+        await super().close_tasks()
 
     def do_moveAzimuth(self, data):
         """Support the moveAzimuth command."""
