@@ -59,7 +59,6 @@ class FakeDomeTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
                 start_time = time.time()
                 # be conservative about the end time
                 predicted_end_time = start_time + predicted_duration
-                safe_moving_end_time = predicted_end_time - self.csc.telemetry_interval
                 safe_done_end_time = (
                     predicted_end_time + self.csc.telemetry_interval * 2
                 )
@@ -73,11 +72,13 @@ class FakeDomeTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
                 )
                 salobj.assertAnglesAlmostEqual(az_cmd_state.azimuth, az)
 
+                isfirst = True
                 while True:
                     position = await self.remote.tel_position.next(
                         flush=True, timeout=STD_TIMEOUT
                     )
-                    if time.time() < safe_moving_end_time:
+                    if isfirst:
+                        isfirst = False
                         with self.assertRaises(AssertionError):
                             salobj.assertAnglesAlmostEqual(position.azimuthPosition, az)
                     elif time.time() > safe_done_end_time:
