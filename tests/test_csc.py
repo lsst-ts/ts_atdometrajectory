@@ -94,6 +94,12 @@ class ATDomeTrajectoryTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
 
     async def test_default_config_dir(self):
         async with self.make_csc(initial_state=salobj.State.STANDBY):
+            await self.assert_next_sample(
+                self.remote.evt_softwareVersions,
+                cscVersion=ATDomeTrajectory.__version__,
+                subsystemVersions="",
+            )
+
             desired_config_pkg_name = "ts_config_attcs"
             desired_config_env_name = desired_config_pkg_name.upper() + "_DIR"
             desird_config_pkg_dir = os.environ[desired_config_env_name]
