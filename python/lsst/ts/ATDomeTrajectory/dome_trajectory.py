@@ -78,7 +78,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         # event; None before the event is seen.
         self.dome_target_azimuth = None
 
-        # Telescope target, from the NewMTMount target event;
+        # Telescope target, from the ATMCS target event;
         # an ElevationAzimuth; None before a target is seen.
         self.telescope_target = None
 
