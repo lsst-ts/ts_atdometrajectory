@@ -30,7 +30,7 @@ import yaml
 
 from lsst.ts import salobj
 from lsst.ts import ATDomeTrajectory
-from lsst.ts.idl.enums import ATDome
+from lsst.ts.idl.enums.ATDome import AzimuthCommandedState
 
 NODATA_TIMEOUT = 0.5
 STD_TIMEOUT = 5  # standard command timeout (sec)
@@ -80,7 +80,7 @@ class ATDomeTrajectoryTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
 
             await self.assert_next_sample(
                 self.dome_remote.evt_azimuthCommandedState,
-                commandedState=ATDome.AzimuthCommandedState.UNKNOWN,
+                commandedState=AzimuthCommandedState.UNKNOWN,
             )
             elevation = 40
             min_daz_to_move = self.csc.algorithm.max_delta_azimuth / math.cos(
@@ -94,6 +94,12 @@ class ATDomeTrajectoryTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
 
     async def test_default_config_dir(self):
         async with self.make_csc(initial_state=salobj.State.STANDBY):
+            await self.assert_next_sample(
+                self.remote.evt_softwareVersions,
+                cscVersion=ATDomeTrajectory.__version__,
+                subsystemVersions="",
+            )
+
             desired_config_pkg_name = "ts_config_attcs"
             desired_config_env_name = desired_config_pkg_name.upper() + "_DIR"
             desird_config_pkg_dir = os.environ[desired_config_env_name]
@@ -141,7 +147,7 @@ class ATDomeTrajectoryTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
         if move_expected:
             az_cmd_state = await self.assert_next_sample(
                 self.dome_remote.evt_azimuthCommandedState,
-                commandedState=ATDome.AzimuthCommandedState.GOTOPOSITION,
+                commandedState=AzimuthCommandedState.GOTOPOSITION,
             )
             salobj.assertAnglesAlmostEqual(az_cmd_state.azimuth, azimuth)
         else:

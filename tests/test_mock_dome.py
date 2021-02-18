@@ -27,7 +27,7 @@ import asynctest
 
 from lsst.ts import salobj
 from lsst.ts import ATDomeTrajectory
-from lsst.ts.idl.enums import ATDome
+from lsst.ts.idl.enums.ATDome import AzimuthCommandedState
 
 STD_TIMEOUT = 5  # standard command timeout (sec)
 
@@ -44,7 +44,7 @@ class FakeDomeTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
 
             await self.assert_next_sample(
                 self.remote.evt_azimuthCommandedState,
-                commandedState=ATDome.AzimuthCommandedState.UNKNOWN,
+                commandedState=AzimuthCommandedState.UNKNOWN,
             )
 
             position = await self.remote.tel_position.next(
@@ -68,7 +68,7 @@ class FakeDomeTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
 
                 az_cmd_state = await self.assert_next_sample(
                     self.remote.evt_azimuthCommandedState,
-                    commandedState=ATDome.AzimuthCommandedState.GOTOPOSITION,
+                    commandedState=AzimuthCommandedState.GOTOPOSITION,
                 )
                 salobj.assertAnglesAlmostEqual(az_cmd_state.azimuth, az)
 
