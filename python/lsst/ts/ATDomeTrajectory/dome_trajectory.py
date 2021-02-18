@@ -27,7 +27,8 @@ import yaml
 
 from lsst.ts import salobj
 from lsst.ts import simactuators
-from lsst.ts.idl.enums import ATDome
+from lsst.ts.idl.enums.ATDome import AzimuthCommandedState
+from . import __version__
 from .elevation_azimuth import ElevationAzimuth
 from .base_algorithm import AlgorithmRegistry
 
@@ -58,6 +59,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
     """
 
     valid_simulation_modes = [0]
+    version = __version__
 
     def __init__(self, config_dir=None, initial_state=salobj.base_csc.State.STANDBY):
         schema_path = (
@@ -78,7 +80,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         # event; None before the event is seen.
         self.dome_target_azimuth = None
 
-        # Telescope target, from the NewMTMount target event;
+        # Telescope target, from the ATMCS target event;
         # an ElevationAzimuth; None before a target is seen.
         self.telescope_target = None
 
@@ -158,7 +160,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         This is triggered in any summary state, but only
         commands a new dome position if enabled.
         """
-        if state.commandedState != ATDome.AzimuthCommandedState.GOTOPOSITION:
+        if state.commandedState != AzimuthCommandedState.GOTOPOSITION:
             self.dome_target_azimuth = None
             self.log.info("dome_target_azimuth=nan")
         else:

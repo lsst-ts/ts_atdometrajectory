@@ -6,6 +6,21 @@
 Version History
 ###############
 
+v1.4.6
+======
+
+Changes:
+
+* `ATDomeTrajectory`: add ``version`` class attribute, which is used to set the ``cscVersion`` field of the ``softwareVersions`` event.
+
+Requirements:
+
+* ts_salobj 5.11 or 6
+* ts_idl 1.0
+* IDL files for ATDome, ATDomeTrajectory and ATMCS
+* ts_xml 4.1
+* ts_ATDome 1.0
+
 v1.4.5
 ======
 
