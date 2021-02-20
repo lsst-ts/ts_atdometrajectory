@@ -6,6 +6,21 @@
 Version History
 ###############
 
+v1.4.7
+======
+
+Changes:
+
+* Modernize doc/conf.py for documenteer 0.6.
+
+Requirements:
+
+* ts_salobj 5.11 or 6
+* ts_idl 1.0
+* IDL files for ATDome, ATDomeTrajectory and ATMCS
+* ts_xml 4.1
+* ts_ATDome 1.0
+
 v1.4.6
 ======
 
