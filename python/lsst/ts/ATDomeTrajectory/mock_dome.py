@@ -44,6 +44,7 @@ class MockATDome(salobj.BaseCsc):
     """
 
     valid_simulation_modes = [0]
+    version = "mock"
 
     def __init__(self, initial_state):
         super().__init__(name="ATDome", index=None, initial_state=initial_state)
