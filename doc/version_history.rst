@@ -6,6 +6,19 @@
 Version History
 ###############
 
+v1.5.0
+======
+
+* Store the CSC configuration schema in code.
+  This requires ts_salobj 6.3.
+* `MockDome`: set the ``version`` class attribute.
+
+* ts_salobj 6.3
+* ts_idl 2
+* IDL files for ATDome, ATDomeTrajectory and ATMCS
+* ts_xml 4.1
+* ts_ATDome 1
+
 v1.4.7
 ======
 
