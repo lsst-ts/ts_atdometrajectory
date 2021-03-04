@@ -6,12 +6,32 @@
 Version History
 ###############
 
+v1.5.1
+======
+
+Changes:
+
+* Fix handling of a missing version.py file.
+
+Requirements:
+
+* ts_salobj 6.3
+* ts_idl 2
+* IDL files for ATDome, ATDomeTrajectory and ATMCS
+* ts_xml 4.1
+* ts_ATDome 1
+
+
 v1.5.0
 ======
+
+Changes:
 
 * Store the CSC configuration schema in code.
   This requires ts_salobj 6.3.
 * `MockDome`: set the ``version`` class attribute.
+
+Requirements:
 
 * ts_salobj 6.3
 * ts_idl 2
