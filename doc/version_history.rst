@@ -11,7 +11,8 @@ v1.5.1
 
 Changes:
 
-* Fix handling of a missing version.py file.
+* Fix handling of a missing ``version.py`` file.
+* Modernized ``Jenkinsfile.conda``.
 
 Requirements:
 
