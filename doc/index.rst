@@ -41,22 +41,34 @@ Start the ATDomeTrajectory CSC as follows:
 
 Stop the CSC by sending it to the OFFLINE state.
 
-To make dome track the telescope send the ATDomeTrajectory CSC to the ENABLED state.
+To make the dome follow the telescope: issue the ATDomeTrajectory
+`setEnabledMode <https://ts-xml.lsst.io/sal_interfaces/ATDomeTrajectory.html#setenabledmode>`_ command
+with ``enabled=True``.
 
-To stop the dome from tracking the telescope (e.g. if you want to send the dome to some specific position) send the ATDomeTrajectory CSC to the DISABLED state (or any state other than ENABLED).
+To move the dome to a specified azimuth that is different from the telescope's azimuth:
 
-ATDomeTrajectory supports multiple algorithms for moving the dome.
-The algorithm is specified in the :ref:`configuration <lsst.ts.ATDomeTrajectory-configuration>`.
+* Stop the dome from following: issue the ATDomeTrajectory `setEnabledMode command`_ with ``enabled=False``.
+* Move the dome: issue the ATDome `moveAzimuth command`_ with ``azimuth=desired_azimuth``.
+
+ATDomeTrajectory can support multiple algorithms for making the dome follow the telescope;
+but at the time of this writing, there is only one.
+The algorithm is specified and configured in :ref:`configuration <lsst.ts.ATDomeTrajectory-configuration>`.
+
+Simulation
+----------
 
 ATDomeTrajectory can be fully exercised without hardware by running the `ATMCSSimulator CSC`_ and running `ATDome CSC`_ in simulation mode.
-Thus ATDomeTrajectory does not need or have a simulation mode of its own.
+ATDomeTrajectory does not have a simulation mode of its own.
+
+.. _setEnabledMode command: https://ts-xml.lsst.io/sal_interfaces/ATDomeTrajectory.html#setenabledmode
+.. _moveAzimuth command: https://ts-xml.lsst.io/sal_interfaces/ATDome.html#moveazimuth
 
 .. _lsst.ts.ATDomeTrajectory-configuration:
 
 Configuration
 -------------
 
-Configuration is defined by `this schema <https://github.com/lsst-ts/ts_ATDomeTrajectory/blob/develop/schema/ATDomeTrajectory.yaml>`_.
+Configuration is defined by `CONFIG_SCHEMA <https://github.com/lsst-ts/ts_ATDomeTrajectory/blob/develop/python/lsst/ts/ATDomeTrajectory/config_schema.py>`_.
 Configuration primarily consists of specifying the control algorithm and its associated parameters.
 
 Available algorithms:
