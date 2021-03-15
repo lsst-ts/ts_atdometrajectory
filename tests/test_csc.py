@@ -26,7 +26,6 @@ import os
 import pathlib
 import unittest
 
-import asynctest
 import yaml
 
 from lsst.ts import salobj
@@ -41,7 +40,9 @@ TEST_CONFIG_DIR = pathlib.Path(__file__).parents[1].joinpath("tests", "data", "c
 RAD_PER_DEG = math.pi / 180
 
 
-class ATDomeTrajectoryTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
+class ATDomeTrajectoryTestCase(
+    salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase
+):
     @contextlib.asynccontextmanager
     async def make_csc(
         self,
