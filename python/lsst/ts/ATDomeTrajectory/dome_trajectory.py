@@ -53,21 +53,27 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         The initial state of the CSC. Typically one of:
         - State.ENABLED if you want the CSC immediately usable.
         - State.STANDBY if you want full emulation of a CSC.
-    simulation_mode : `int` (optional)
-        Simulation mode. This is provided for unit testing,
-        as real CSCs should start up not simulating, the default.
+    settings_to_apply : `str`, optional
+        Settings to apply if ``initial_state`` is `State.DISABLED`
+        or `State.ENABLED`.
     """
 
     valid_simulation_modes = [0]
     version = __version__
 
-    def __init__(self, config_dir=None, initial_state=salobj.base_csc.State.STANDBY):
+    def __init__(
+        self,
+        config_dir=None,
+        initial_state=salobj.base_csc.State.STANDBY,
+        settings_to_apply="",
+    ):
         super().__init__(
             name="ATDomeTrajectory",
             config_schema=CONFIG_SCHEMA,
             config_dir=config_dir,
             index=None,
             initial_state=initial_state,
+            settings_to_apply=settings_to_apply,
             simulation_mode=0,
         )
 
@@ -221,3 +227,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         await self.dome_remote.cmd_moveAzimuth.set_start(
             azimuth=desired_dome_azimuth, timeout=STD_TIMEOUT
         )
+
+    async def start(self):
+        await super().start()
+        await self.dome_remote.start_task

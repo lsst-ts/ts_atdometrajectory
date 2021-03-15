@@ -20,12 +20,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
+import contextlib
 import math
 import os
 import pathlib
 import unittest
 
-import asynctest
 import yaml
 
 from lsst.ts import salobj
@@ -40,24 +40,41 @@ TEST_CONFIG_DIR = pathlib.Path(__file__).parents[1].joinpath("tests", "data", "c
 RAD_PER_DEG = math.pi / 180
 
 
-class ATDomeTrajectoryTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
-    def setUp(self):
-        self.dome_csc = None
-        self.dome_remote = None
-        self.atmcs_controller = None
+class ATDomeTrajectoryTestCase(
+    salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase
+):
+    @contextlib.asynccontextmanager
+    async def make_csc(
+        self,
+        initial_state,
+        config_dir=None,
+        settings_to_apply="",
+        simulation_mode=0,
+        log_level=None,
+    ):
+        async with super().make_csc(
+            initial_state=initial_state,
+            config_dir=config_dir,
+            settings_to_apply=settings_to_apply,
+            simulation_mode=simulation_mode,
+            log_level=log_level,
+        ), ATDomeTrajectory.MockDome(
+            initial_state=salobj.State.ENABLED
+        ) as self.dome_csc, salobj.Remote(
+            domain=self.dome_csc.domain, name="ATDome"
+        ) as self.dome_remote, salobj.Controller(
+            "ATMCS"
+        ) as self.atmcs_controller:
+            yield
 
-    async def tearDown(self):
-        for item_to_close in (self.dome_csc, self.dome_remote, self.atmcs_controller):
-            if item_to_close is not None:
-                await item_to_close.close()
-
-    def basic_make_csc(self, initial_state, config_dir, simulation_mode):
+    def basic_make_csc(
+        self, initial_state, config_dir, simulation_mode, settings_to_apply
+    ):
         self.assertEqual(simulation_mode, 0)
-        self.dome_csc = ATDomeTrajectory.MockATDome(initial_state=salobj.State.ENABLED)
-        self.dome_remote = salobj.Remote(domain=self.dome_csc.domain, name="ATDome")
-        self.atmcs_controller = salobj.Controller("ATMCS")
         return ATDomeTrajectory.ATDomeTrajectory(
-            initial_state=initial_state, config_dir=config_dir,
+            initial_state=initial_state,
+            config_dir=config_dir,
+            settings_to_apply=settings_to_apply,
         )
 
     async def test_bin_script(self):

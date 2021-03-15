@@ -6,6 +6,24 @@
 Version History
 ###############
 
+v1.6.1
+======
+
+Changes:
+
+* `ATDomeTrajectory`: wait for the dome remote to start at startup,
+  to avoid the CSC trying to command the dome before the remote is ready.
+* Rename `MockATDome` to `MockDome` for uniformity with ts_MTDomeTrajectory.
+* ``test_csc.py``: eliminate several race conditions in ``make_csc``
+   by waiting for the extra remotes and controllers to start.
+* Eliminate all use of the abandoned ``asynctest`` package; use `unittest.IsolatedAsyncioTestCase` instead.
+
+Requirements:
+
+* ts_salobj 6.3
+* ts_idl 2
+* IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 8.1
+
 v1.6.0
 ======
 
@@ -19,7 +37,6 @@ Requirements:
 * ts_salobj 6.3
 * ts_idl 2
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 8.1
-* ts_ATDome 1
 
 v1.5.1
 ======
@@ -34,7 +51,6 @@ Requirements:
 * ts_salobj 6.3
 * ts_idl 2
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
-* ts_ATDome 1
 
 
 v1.5.0
@@ -51,7 +67,6 @@ Requirements:
 * ts_salobj 6.3
 * ts_idl 2
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
-* ts_ATDome 1
 
 v1.4.7
 ======
@@ -65,7 +80,6 @@ Requirements:
 * ts_salobj 5.11 or 6
 * ts_idl 1.0
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
-* ts_ATDome 1.0
 
 v1.4.6
 ======
@@ -79,7 +93,6 @@ Requirements:
 * ts_salobj 5.11 or 6
 * ts_idl 1.0
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
-* ts_ATDome 1.0
 
 v1.4.5
 ======
@@ -94,7 +107,6 @@ Requirements:
 * ts_salobj 5.11 or 6
 * ts_idl 1.0
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
-* ts_ATDome 1.0
 
 v1.4.4
 ======
@@ -109,7 +121,6 @@ Requirements:
 * ts_salobj 5.11 or 6
 * ts_idl 1.0
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
-* ts_ATDome 1.0
 
 v1.4.3
 ======
@@ -123,7 +134,6 @@ Requirements:
 * ts_salobj 5.11 or 6
 * ts_idl 1.0
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
-* ts_ATDome 1.0
 
 v1.4.2
 ======
@@ -140,7 +150,6 @@ Requirements:
 * ts_salobj 5.11 or 6
 * ts_idl 1.0
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
-* ts_ATDome 1.0
 
 v1.4.1
 ======
@@ -154,7 +163,6 @@ Requirements:
 * ts_salobj 5.11
 * ts_idl 1.0
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
-* ts_ATDome 1.0
 
 v1.4.0
 ======
@@ -169,7 +177,6 @@ Requirements:
 * ts_salobj 5.11
 * ts_idl 1.0
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
-* ts_ATDome 1.0
 
 v1.3.4
 ======
@@ -183,7 +190,6 @@ Requirements:
 * ts_salobj 5.11
 * ts_idl 1.0
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
-* ts_ATDome 1.0
 
 v1.3.3
 ======
@@ -208,7 +214,6 @@ Requirements:
 * ts_salobj 5.11
 * ts_idl 1.0
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
-* ts_ATDome 1.0
 
 v1.3.1
 ======
@@ -220,7 +225,6 @@ Requirements:
 * ts_salobj 5.4
 * ts_idl 1.0
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
-* ts_ATDome 1.0
 
 
 v1.3.0
@@ -235,7 +239,6 @@ Requirements:
 * ts_salobj 5.4
 * ts_idl 1.0
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
-* ts_ATDome 1.0
 
 
 v1.2.0
@@ -248,7 +251,6 @@ Requirements:
 * ts_salobj 5.2
 * ts_idl 0.4
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
-* ts_ATDome 0.8
 
 v1.1.0
 ======
@@ -264,7 +266,6 @@ Requirements:
 * ts_salobj 5
 * ts_idl 0.4
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
-* ts_ATDome 0.8
 
 v1.0.0
 ======
@@ -275,7 +276,6 @@ Requirements:
 * ts_salobj 4.3
 * ts_idl
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
-* ts_ATDome 0.7
 
 v0.9.0
 ======
