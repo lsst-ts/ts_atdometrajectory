@@ -30,9 +30,9 @@ from lsst.ts.idl.enums.ATDome import AzimuthCommandedState
 STD_TIMEOUT = 5  # standard command timeout (sec)
 
 
-class FakeDomeTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase):
+class MockDomeTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase):
     def basic_make_csc(self, initial_state, config_dir, simulation_mode):
-        return ATDomeTrajectory.MockATDome(initial_state=initial_state)
+        return ATDomeTrajectory.MockDome(initial_state=initial_state)
 
     async def test_move_azimuth(self):
         """Test issuing moveAzimuth commands to ATDome.

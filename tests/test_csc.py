@@ -58,7 +58,7 @@ class ATDomeTrajectoryTestCase(
             settings_to_apply=settings_to_apply,
             simulation_mode=simulation_mode,
             log_level=log_level,
-        ), ATDomeTrajectory.MockATDome(
+        ), ATDomeTrajectory.MockDome(
             initial_state=salobj.State.ENABLED
         ) as self.dome_csc, salobj.Remote(
             domain=self.dome_csc.domain, name="ATDome"
