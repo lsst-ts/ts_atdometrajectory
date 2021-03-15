@@ -227,3 +227,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         await self.dome_remote.cmd_moveAzimuth.set_start(
             azimuth=desired_dome_azimuth, timeout=STD_TIMEOUT
         )
+
+    async def start(self):
+        await super().start()
+        await self.dome_remote.start_task
