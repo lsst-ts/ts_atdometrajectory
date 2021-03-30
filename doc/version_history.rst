@@ -20,6 +20,9 @@ Changes:
    by waiting for the extra remotes and controllers to start.
 * Eliminate use of the abandoned ``asynctest`` package; use `unittest.IsolatedAsyncioTestCase` instead.
 * Delete obsolete ``.travis.yml`` file.
+* Format the code with black 20.8b1.
+* Use pre-commit instead of a custom pre-commit hook; see the README.md for instructions.
+* Modernize conda/meta.yaml.
 
 Requirements:
 

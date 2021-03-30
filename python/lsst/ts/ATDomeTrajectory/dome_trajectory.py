@@ -177,8 +177,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         await self.follow_target()
 
     async def do_setFollowingMode(self, data):
-        """Handle the setFollowingMode command.
-        """
+        """Handle the setFollowingMode command."""
         self.assert_enabled()
         if data.enable:
             # Report following enabled and trigger an update
