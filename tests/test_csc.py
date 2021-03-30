@@ -78,23 +78,22 @@ class ATDomeTrajectoryTestCase(
         )
 
     async def test_bin_script(self):
-        """Test that run_atdometrajectory.py runs the CSC.
-        """
+        """Test that run_atdometrajectory.py runs the CSC."""
         await self.check_bin_script(
-            name="ATDomeTrajectory", index=None, exe_name="run_atdometrajectory.py",
+            name="ATDomeTrajectory",
+            index=None,
+            exe_name="run_atdometrajectory.py",
         )
 
     async def test_standard_state_transitions(self):
-        """Test standard CSC state transitions.
-        """
+        """Test standard CSC state transitions."""
         async with self.make_csc(initial_state=salobj.State.STANDBY):
             await self.check_standard_state_transitions(
                 enabled_commands=("setFollowingMode",)
             )
 
     async def test_simple_follow(self):
-        """Test that dome follows telescope using the "simple" algorithm.
-        """
+        """Test that dome follows telescope using the "simple" algorithm."""
         async with self.make_csc(initial_state=salobj.State.ENABLED):
             await self.assert_next_sample(self.remote.evt_followingMode, enabled=False)
             await self.assert_next_sample(

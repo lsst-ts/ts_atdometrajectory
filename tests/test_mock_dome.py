@@ -35,8 +35,7 @@ class MockDomeTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase)
         return ATDomeTrajectory.MockDome(initial_state=initial_state)
 
     async def test_move_azimuth(self):
-        """Test issuing moveAzimuth commands to ATDome.
-        """
+        """Test issuing moveAzimuth commands to ATDome."""
         async with self.make_csc(initial_state=salobj.State.ENABLED):
             await self.assert_next_summary_state(salobj.State.ENABLED)
 
