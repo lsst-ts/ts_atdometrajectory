@@ -38,30 +38,24 @@ class ValidationTestCase(unittest.TestCase):
         default_max_daz = 5  # hard-coded in the schema
         result = self.validator.validate(None)
         self.assertEqual(result["algorithm_name"], "simple")
-        self.assertEqual(
-            result["algorithm_config"], dict(max_delta_azimuth=default_max_daz)
-        )
+        self.assertEqual(result["simple"], dict(max_delta_azimuth=default_max_daz))
 
     def test_name_specified(self):
         default_max_daz = 5  # hard-coded in the schema
         data = dict(algorithm_name="simple")
         result = self.validator.validate(data)
         self.assertEqual(result["algorithm_name"], "simple")
-        self.assertEqual(
-            result["algorithm_config"], dict(max_delta_azimuth=default_max_daz)
-        )
+        self.assertEqual(result["simple"], dict(max_delta_azimuth=default_max_daz))
 
     def test_all_specified(self):
         max_delta_azimuth = 3.5
         data = dict(
             algorithm_name="simple",
-            algorithm_config=dict(max_delta_azimuth=max_delta_azimuth),
+            simple=dict(max_delta_azimuth=max_delta_azimuth),
         )
         result = self.validator.validate(data)
         self.assertEqual(result["algorithm_name"], "simple")
-        self.assertEqual(
-            result["algorithm_config"], dict(max_delta_azimuth=max_delta_azimuth)
-        )
+        self.assertEqual(result["simple"], dict(max_delta_azimuth=max_delta_azimuth))
 
     def test_bad_algorithm_name(self):
         data = dict(algorithm_name="invalid_name")
@@ -70,7 +64,7 @@ class ValidationTestCase(unittest.TestCase):
 
     def test_bad_algorithm_config(self):
         """The current schema only checks for a dict."""
-        data = dict(algorithm_name="simple", algorithm_config=45)
+        data = dict(algorithm_name="simple", simple=45)
         with self.assertRaises(jsonschema.exceptions.ValidationError):
             self.validator.validate(data)
 
