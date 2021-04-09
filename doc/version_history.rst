@@ -6,8 +6,22 @@
 Version History
 ###############
 
+v1.7.0
+------
+
+Changes:
+
+* Change the CSC configuration schema to allow configuring all algorithms at once.
+  This supports a planned change to how configuration files are read.
+
+Requirements:
+
+* ts_salobj 6.3
+* ts_idl 2
+* IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 8.1
+
 v1.6.0
-======
+------
 
 Changes:
 
@@ -31,7 +45,7 @@ Requirements:
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 8.1
 
 v1.5.1
-======
+------
 
 Changes:
 
@@ -46,7 +60,7 @@ Requirements:
 
 
 v1.5.0
-======
+------
 
 Changes:
 
@@ -61,7 +75,7 @@ Requirements:
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
 
 v1.4.7
-======
+------
 
 Changes:
 
@@ -74,7 +88,7 @@ Requirements:
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
 
 v1.4.6
-======
+------
 
 Changes:
 
@@ -87,7 +101,7 @@ Requirements:
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
 
 v1.4.5
-======
+------
 
 Changes:
 
@@ -101,7 +115,7 @@ Requirements:
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
 
 v1.4.4
-======
+------
 
 Changes:
 
@@ -115,7 +129,7 @@ Requirements:
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
 
 v1.4.3
-======
+------
 
 Changes:
 
@@ -128,7 +142,7 @@ Requirements:
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
 
 v1.4.2
-======
+------
 
 Changes:
 
@@ -144,7 +158,7 @@ Requirements:
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
 
 v1.4.1
-======
+------
 
 Changes:
 
@@ -157,7 +171,7 @@ Requirements:
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
 
 v1.4.0
-======
+------
 
 Changes:
 
@@ -171,7 +185,7 @@ Requirements:
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
 
 v1.3.4
-======
+------
 
 Changes:
 
@@ -184,7 +198,7 @@ Requirements:
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
 
 v1.3.3
-======
+------
 
 Changes:
 
@@ -195,7 +209,7 @@ Changes:
 * Update ``.travis.yml`` to remove ``sudo: false`` to github travis checks pass once again.
 
 v1.3.2
-======
+------
 
 Changes:
 
@@ -208,7 +222,7 @@ Requirements:
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
 
 v1.3.1
-======
+------
 
 Add conda build support.
 
@@ -220,7 +234,7 @@ Requirements:
 
 
 v1.3.0
-======
+------
 
 * Update CSC unit tests to use `lsst.ts.salobj.BaseCscTestCase`.
   Thus we now require ts_salobj 5.4.
@@ -234,7 +248,7 @@ Requirements:
 
 
 v1.2.0
-======
+------
 
 Update for ts_salobj 5.2: rename initial_simulation_mode to simulation_mode.
 
@@ -245,7 +259,7 @@ Requirements:
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
 
 v1.1.0
-======
+------
 Update for SAL 4.
 
 Other changes:
@@ -260,7 +274,7 @@ Requirements:
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
 
 v1.0.0
-======
+------
 Update for ATDome no longer having a SAL index.
 
 Requirements:
@@ -270,7 +284,7 @@ Requirements:
 * IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 4.1
 
 v0.9.0
-======
+------
 In `algorithms.SimpleAlgorithm` scale daz by cos(el) so the dome is less likely to move unnecessarily.
 
 Other changes:
@@ -286,11 +300,11 @@ Requirements:
 * IDL files for ATDome, ATDomeTrajectory and ATMCS
 
 v0.8.1
-======
+------
 Add a dependency on ts_config_attcs to the ups table file.
 
 v0.8.0
-======
+------
 Use OpenSplice dds instead of SALPY libraries.
 
 Requirements:
@@ -304,7 +318,7 @@ Requirements:
   * ATMCS
 
 v0.7.0
-======
+------
 Make `ATDomeTrajectory.configure` async for ts_salobj 3.12.
 
 Requirements:
@@ -314,7 +328,7 @@ ts_sal 3.9
 ts_salobj 3.12
 
 v0.6.0
-======
+------
 Standardize configuration of `ATDomeTrajectory` by making it a subclass of `salobj.ConfigurableCsc`.
 
 Requirements:
@@ -324,7 +338,7 @@ Requirements:
 * ts_salobj v3.11
 
 v0.5.0
-======
+------
 Update for ts_ATDome v0.4.0.
 
 Requirements:
