@@ -20,12 +20,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
+import contextlib
 import math
 import os
 import pathlib
 import unittest
 
-import asynctest
 import yaml
 
 from lsst.ts import salobj
@@ -40,48 +40,71 @@ TEST_CONFIG_DIR = pathlib.Path(__file__).parents[1].joinpath("tests", "data", "c
 RAD_PER_DEG = math.pi / 180
 
 
-class ATDomeTrajectoryTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
-    def setUp(self):
-        self.dome_csc = None
-        self.dome_remote = None
-        self.atmcs_controller = None
+class ATDomeTrajectoryTestCase(
+    salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase
+):
+    @contextlib.asynccontextmanager
+    async def make_csc(
+        self,
+        initial_state,
+        config_dir=None,
+        settings_to_apply="",
+        simulation_mode=0,
+        log_level=None,
+    ):
+        async with super().make_csc(
+            initial_state=initial_state,
+            config_dir=config_dir,
+            settings_to_apply=settings_to_apply,
+            simulation_mode=simulation_mode,
+            log_level=log_level,
+        ), ATDomeTrajectory.MockDome(
+            initial_state=salobj.State.ENABLED
+        ) as self.dome_csc, salobj.Remote(
+            domain=self.dome_csc.domain, name="ATDome"
+        ) as self.dome_remote, salobj.Controller(
+            "ATMCS"
+        ) as self.atmcs_controller:
+            yield
 
-    async def tearDown(self):
-        for item_to_close in (self.dome_csc, self.dome_remote, self.atmcs_controller):
-            if item_to_close is not None:
-                await item_to_close.close()
-
-    def basic_make_csc(self, initial_state, config_dir, simulation_mode):
+    def basic_make_csc(
+        self, initial_state, config_dir, simulation_mode, settings_to_apply
+    ):
         self.assertEqual(simulation_mode, 0)
-        self.dome_csc = ATDomeTrajectory.MockATDome(initial_state=salobj.State.ENABLED)
-        self.dome_remote = salobj.Remote(domain=self.dome_csc.domain, name="ATDome")
-        self.atmcs_controller = salobj.Controller("ATMCS")
         return ATDomeTrajectory.ATDomeTrajectory(
-            initial_state=initial_state, config_dir=config_dir,
+            initial_state=initial_state,
+            config_dir=config_dir,
+            settings_to_apply=settings_to_apply,
         )
 
     async def test_bin_script(self):
-        """Test that run_atdometrajectory.py runs the CSC.
-        """
+        """Test that run_atdometrajectory.py runs the CSC."""
         await self.check_bin_script(
-            name="ATDomeTrajectory", index=None, exe_name="run_atdometrajectory.py",
+            name="ATDomeTrajectory",
+            index=None,
+            exe_name="run_atdometrajectory.py",
         )
 
     async def test_standard_state_transitions(self):
-        """Test standard CSC state transitions.
-        """
+        """Test standard CSC state transitions."""
         async with self.make_csc(initial_state=salobj.State.STANDBY):
-            await self.check_standard_state_transitions(enabled_commands=())
+            await self.check_standard_state_transitions(
+                enabled_commands=("setFollowingMode",)
+            )
 
     async def test_simple_follow(self):
-        """Test that dome follows telescope using the "simple" algorithm.
-        """
+        """Test that dome follows telescope using the "simple" algorithm."""
         async with self.make_csc(initial_state=salobj.State.ENABLED):
-
+            await self.assert_next_sample(self.remote.evt_followingMode, enabled=False)
             await self.assert_next_sample(
                 self.dome_remote.evt_azimuthCommandedState,
                 commandedState=AzimuthCommandedState.UNKNOWN,
             )
+
+            await self.remote.cmd_setFollowingMode.set_start(
+                enable=True, timeout=STD_TIMEOUT
+            )
+            await self.assert_next_sample(self.remote.evt_followingMode, enabled=True)
             elevation = 40
             min_daz_to_move = self.csc.algorithm.max_delta_azimuth / math.cos(
                 elevation * RAD_PER_DEG
@@ -91,6 +114,20 @@ class ATDomeTrajectoryTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
                 await self.check_move(elevation=elevation, azimuth=azimuth)
 
             await self.check_null_moves(elevation=elevation)
+
+            # Turn off following and make sure the dome does not follow
+            # the telescope.
+            await self.remote.cmd_setFollowingMode.set_start(
+                enable=False, timeout=STD_TIMEOUT
+            )
+            await self.assert_next_sample(self.remote.evt_followingMode, enabled=False)
+            # Pretend the telescope is pointing 180 deg away from the dome;
+            # that is more than enough to trigger a dome move, if following.
+            new_telescope_azimuth = self.dome_csc.cmd_az + 180
+            self.atmcs_controller.evt_target.set_put(
+                elevation=elevation, azimuth=new_telescope_azimuth, force_output=True
+            )
+            await self.assert_dome_az(azimuth=None, move_expected=False)
 
     async def test_default_config_dir(self):
         async with self.make_csc(initial_state=salobj.State.STANDBY):
@@ -143,6 +180,21 @@ class ATDomeTrajectoryTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
 
     async def assert_dome_az(self, azimuth, move_expected):
         """Check the ATDome and ATDomeController commanded azimuth.
+
+
+        Parameters
+        ----------
+        expected_azimuth : `float`
+            Expected new azimuth position (deg);
+            ignored if ``move_expected`` false.
+        move_expected : `bool`
+            Is a move expected?
+
+        Notes
+        -----
+        If ``move_expected`` then read the next ``azimuthCommandedState``
+        ATDome event.
+        Otherwise try to read the next event and expect it to time out.
         """
         if move_expected:
             az_cmd_state = await self.assert_next_sample(

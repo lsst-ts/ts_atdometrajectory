@@ -37,31 +37,19 @@ properties:
     enum:
     - simple
     default: simple
-  algorithm_config:
+  simple:
+    description: Configuration for the "simple" algorithm.
     type: object
-allOf:
-# For each supported algorithm_name add a new if/then case below.
-# Warning: set the default values for each case at the algorithm_config level
-# (rather than deeper down on properties within algorithm_config),
-# so users can omit algorithm_config and still get proper defaults.
-- if:
     properties:
-      algorithm_name:
-        const: simple
-  then:
-    properties:
-      algorithm_config:
-        properties:
-          max_delta_azimuth:
-            type: number
-            description: ->
-              Maximum difference between dome and telescope azimuth before moving the dome (deg).
-              The default value is nearly where the dome vignettes the telescope.
-        required:
-        - max_delta_azimuth
-        default:
-          max_delta_azimuth: 5
-        additionalProperties: false
+      max_delta_azimuth:
+        type: number
+        description: ->
+          Maximum difference between dome and telescope azimuth before moving the dome (deg).
+          The default value is nearly where the dome vignettes the telescope.
+        default: 5
+    required:
+    - max_delta_azimuth
+    additionalProperties: false
 additionalProperties: false
 """
 )

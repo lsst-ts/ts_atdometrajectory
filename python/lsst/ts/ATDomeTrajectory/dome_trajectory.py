@@ -53,21 +53,27 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         The initial state of the CSC. Typically one of:
         - State.ENABLED if you want the CSC immediately usable.
         - State.STANDBY if you want full emulation of a CSC.
-    simulation_mode : `int` (optional)
-        Simulation mode. This is provided for unit testing,
-        as real CSCs should start up not simulating, the default.
+    settings_to_apply : `str`, optional
+        Settings to apply if ``initial_state`` is `State.DISABLED`
+        or `State.ENABLED`.
     """
 
     valid_simulation_modes = [0]
     version = __version__
 
-    def __init__(self, config_dir=None, initial_state=salobj.base_csc.State.STANDBY):
+    def __init__(
+        self,
+        config_dir=None,
+        initial_state=salobj.base_csc.State.STANDBY,
+        settings_to_apply="",
+    ):
         super().__init__(
             name="ATDomeTrajectory",
             config_schema=CONFIG_SCHEMA,
             config_dir=config_dir,
             index=None,
             initial_state=initial_state,
+            settings_to_apply=settings_to_apply,
             simulation_mode=0,
         )
 
@@ -87,10 +93,6 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         # causing unwanted motion when the dome has been commanded
         # but has not yet had a chance to report the fact.
         self.move_dome_azimuth_task = salobj.make_done_future()
-
-        # Task that is set to (moved_elevation, moved_azimuth)
-        # whenever the follow_target method runs.
-        self.follow_task = asyncio.Future()
 
         # Next telescope target, eventually from the scheduler;
         # an ElevationAzimuth; None before the next target is seen;
@@ -112,6 +114,17 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
     def get_config_pkg():
         return "ts_config_attcs"
 
+    @property
+    def following_enabled(self):
+        """Is following enabled?
+
+        False if the CSC is not in the ENABLED state
+        or if following is not enabled.
+        """
+        if self.summary_state != salobj.State.ENABLED:
+            return False
+        return self.evt_followingMode.data.enabled
+
     async def configure(self, config):
         """Configure this CSC and output the ``algorithm`` event.
 
@@ -120,12 +133,14 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         config : `types.SimpleNamespace`
             Configuration, as described by `CONFIG_SCHEMA`
         """
-        self.algorithm = AlgorithmRegistry[config.algorithm_name](
-            **config.algorithm_config
-        )
+        algorithm_name = config.algorithm_name
+        if algorithm_name not in AlgorithmRegistry:
+            raise salobj.ExpectedError(f"Unknown algorithm {algorithm_name}")
+        algorithm_config = getattr(config, config.algorithm_name)
+        self.algorithm = AlgorithmRegistry[config.algorithm_name](**algorithm_config)
         self.evt_algorithm.set_put(
             algorithmName=config.algorithm_name,
-            algorithmConfig=yaml.dump(config.algorithm_config),
+            algorithmConfig=yaml.dump(algorithm_config),
         )
 
     async def atmcs_target_callback(self, target):
@@ -163,6 +178,17 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
             self.log.info(f"dome_target_azimuth={self.dome_target_azimuth}")
         await self.follow_target()
 
+    async def do_setFollowingMode(self, data):
+        """Handle the setFollowingMode command."""
+        self.assert_enabled()
+        if data.enable:
+            # Report following enabled and trigger an update
+            self.evt_followingMode.set_put(enabled=True)
+            await self.follow_target()
+        else:
+            self.evt_followingMode.set_put(enabled=False)
+            self.move_dome_azimuth_task.cancel()
+
     async def follow_target(self):
         """Send the dome to a new position, if appropriate.
 
@@ -170,7 +196,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         the CSC and remotes have fully started,
         and the target azimuth is known.
         """
-        if self.summary_state != salobj.State.ENABLED:
+        if not self.following_enabled:
             return
         if not self.start_task.done():
             return
@@ -182,27 +208,14 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
                 telescope_target=self.telescope_target,
             )
             if desired_dome_azimuth is not None:
-                moved_azimuth = True
                 self.move_dome_azimuth_task = asyncio.create_task(
                     self.move_dome_azimuth(desired_dome_azimuth)
                 )
 
-        if not self.follow_task.done():
-            self.follow_task.set_result(moved_azimuth)
-
     async def handle_summary_state(self):
         if not self.summary_state == salobj.State.ENABLED:
             self.move_dome_azimuth_task.cancel()
-            self.follow_task.cancel()
-
-    def make_follow_task(self):
-        """Make and return a task that is set when the follow method runs.
-
-        The result of the task is (moved_elevation, moved_azimuth).
-        This method is intended for unit tests.
-        """
-        self.follow_task = asyncio.Future()
-        return self.follow_task
+            self.evt_followingMode.set_put(enabled=False)
 
     async def move_dome_azimuth(self, desired_dome_azimuth):
         """Start moving the dome in azimuth.
@@ -215,3 +228,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         await self.dome_remote.cmd_moveAzimuth.set_start(
             azimuth=desired_dome_azimuth, timeout=STD_TIMEOUT
         )
+
+    async def start(self):
+        await super().start()
+        await self.dome_remote.start_task

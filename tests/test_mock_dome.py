@@ -23,8 +23,6 @@ import asyncio
 import time
 import unittest
 
-import asynctest
-
 from lsst.ts import salobj
 from lsst.ts import ATDomeTrajectory
 from lsst.ts.idl.enums.ATDome import AzimuthCommandedState
@@ -32,13 +30,12 @@ from lsst.ts.idl.enums.ATDome import AzimuthCommandedState
 STD_TIMEOUT = 5  # standard command timeout (sec)
 
 
-class FakeDomeTestCase(salobj.BaseCscTestCase, asynctest.TestCase):
+class MockDomeTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase):
     def basic_make_csc(self, initial_state, config_dir, simulation_mode):
-        return ATDomeTrajectory.MockATDome(initial_state=initial_state)
+        return ATDomeTrajectory.MockDome(initial_state=initial_state)
 
     async def test_move_azimuth(self):
-        """Test issuing moveAzimuth commands to ATDome.
-        """
+        """Test issuing moveAzimuth commands to ATDome."""
         async with self.make_csc(initial_state=salobj.State.ENABLED):
             await self.assert_next_summary_state(salobj.State.ENABLED)
 
