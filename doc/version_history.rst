@@ -18,7 +18,7 @@ Requirements:
 
 * ts_salobj 6.3
 * ts_idl 2
-* IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 8.1
+* IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 9
 
 v1.6.0
 ------
@@ -26,7 +26,7 @@ v1.6.0
 Changes:
 
 * Support the ``setFollowingMode`` command.
-  This requires ts_xml 8.1.
+  This requires ts_xml 9.
 * `ATDomeTrajectory`: wait for the dome remote to start at startup,
   to avoid the CSC trying to command the dome before the remote is ready.
 * Rename `MockATDome` to `MockDome` for uniformity with ts_MTDomeTrajectory.
@@ -42,7 +42,7 @@ Requirements:
 
 * ts_salobj 6.3
 * ts_idl 2
-* IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 8.1
+* IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 9
 
 v1.5.1
 ------
