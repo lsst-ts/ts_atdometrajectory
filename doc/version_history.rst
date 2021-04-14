@@ -6,32 +6,20 @@
 Version History
 ###############
 
-v1.7.0
-------
-
-Changes:
-
-* Change the CSC configuration schema to allow configuring all algorithms at once.
-  This supports a planned change to how configuration files are read.
-
-Requirements:
-
-* ts_salobj 6.3
-* ts_idl 2
-* IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 8.1
-
 v1.6.0
 ------
 
 Changes:
 
 * Support the ``setFollowingMode`` command.
-  This requires ts_xml 8.1.
+  This requires ts_xml 9.
 * `ATDomeTrajectory`: wait for the dome remote to start at startup,
   to avoid the CSC trying to command the dome before the remote is ready.
 * Rename `MockATDome` to `MockDome` for uniformity with ts_MTDomeTrajectory.
 * ``test_csc.py``: eliminate several race conditions in ``make_csc``
    by waiting for the extra remotes and controllers to start.
+* Change the CSC configuration schema to allow configuring all algorithms at once.
+  This supports a planned change to how configuration files are read.
 * Eliminate use of the abandoned ``asynctest`` package; use `unittest.IsolatedAsyncioTestCase` instead.
 * Delete obsolete ``.travis.yml`` file.
 * Format the code with black 20.8b1.
@@ -42,7 +30,7 @@ Requirements:
 
 * ts_salobj 6.3
 * ts_idl 2
-* IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 8.1
+* IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 9
 
 v1.5.1
 ------
