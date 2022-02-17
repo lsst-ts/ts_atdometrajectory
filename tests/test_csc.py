@@ -28,8 +28,9 @@ import unittest
 
 import yaml
 
-from lsst.ts import salobj
 from lsst.ts import ATDomeTrajectory
+from lsst.ts import salobj
+from lsst.ts import utils
 from lsst.ts.idl.enums.ATDome import AzimuthCommandedState
 
 NODATA_TIMEOUT = 0.5
@@ -48,14 +49,14 @@ class ATDomeTrajectoryTestCase(
         self,
         initial_state,
         config_dir=None,
-        settings_to_apply="",
+        override="",
         simulation_mode=0,
         log_level=None,
     ):
         async with super().make_csc(
             initial_state=initial_state,
             config_dir=config_dir,
-            settings_to_apply=settings_to_apply,
+            override=override,
             simulation_mode=simulation_mode,
             log_level=log_level,
         ), ATDomeTrajectory.MockDome(
@@ -67,14 +68,12 @@ class ATDomeTrajectoryTestCase(
         ) as self.atmcs_controller:
             yield
 
-    def basic_make_csc(
-        self, initial_state, config_dir, simulation_mode, settings_to_apply
-    ):
+    def basic_make_csc(self, initial_state, config_dir, simulation_mode, override):
         self.assertEqual(simulation_mode, 0)
         return ATDomeTrajectory.ATDomeTrajectory(
             initial_state=initial_state,
             config_dir=config_dir,
-            settings_to_apply=settings_to_apply,
+            override=override,
         )
 
     async def test_bin_script(self):
@@ -124,7 +123,7 @@ class ATDomeTrajectoryTestCase(
             # Pretend the telescope is pointing 180 deg away from the dome;
             # that is more than enough to trigger a dome move, if following.
             new_telescope_azimuth = self.dome_csc.cmd_az + 180
-            self.atmcs_controller.evt_target.set_put(
+            await self.atmcs_controller.evt_target.set_write(
                 elevation=elevation, azimuth=new_telescope_azimuth, force_output=True
             )
             await self.assert_dome_az(azimuth=None, move_expected=False)
@@ -141,7 +140,7 @@ class ATDomeTrajectoryTestCase(
             desired_config_env_name = desired_config_pkg_name.upper() + "_DIR"
             desird_config_pkg_dir = os.environ[desired_config_env_name]
             desired_config_dir = (
-                pathlib.Path(desird_config_pkg_dir) / "ATDomeTrajectory/v1"
+                pathlib.Path(desird_config_pkg_dir) / "ATDomeTrajectory/v2"
             )
             self.assertEqual(self.csc.get_config_pkg(), desired_config_pkg_name)
             self.assertEqual(self.csc.config_dir, desired_config_dir)
@@ -163,11 +162,11 @@ class ATDomeTrajectoryTestCase(
                 with self.subTest(bad_config_name=bad_config_name):
                     with salobj.assertRaisesAckError():
                         await self.remote.cmd_start.set_start(
-                            settingsToApply=bad_config_name, timeout=STD_TIMEOUT
+                            configurationOverride=bad_config_name, timeout=STD_TIMEOUT
                         )
 
             await self.remote.cmd_start.set_start(
-                settingsToApply="valid.yaml", timeout=STD_TIMEOUT
+                configurationOverride="valid.yaml", timeout=STD_TIMEOUT
             )
 
             settings = await self.assert_next_sample(
@@ -201,7 +200,7 @@ class ATDomeTrajectoryTestCase(
                 self.dome_remote.evt_azimuthCommandedState,
                 commandedState=AzimuthCommandedState.GOTOPOSITION,
             )
-            salobj.assertAnglesAlmostEqual(az_cmd_state.azimuth, azimuth)
+            utils.assert_angles_almost_equal(az_cmd_state.azimuth, azimuth)
         else:
             with self.assertRaises(asyncio.TimeoutError):
                 await self.dome_remote.evt_azimuthCommandedState.next(
@@ -209,10 +208,10 @@ class ATDomeTrajectoryTestCase(
                 )
 
     def assert_telescope_target(self, elevation, azimuth):
-        salobj.assertAnglesAlmostEqual(
+        utils.assert_angles_almost_equal(
             self.csc.telescope_target.azimuth.position, azimuth
         )
-        salobj.assertAnglesAlmostEqual(
+        utils.assert_angles_almost_equal(
             self.csc.telescope_target.elevation.position, elevation
         )
 
@@ -246,7 +245,7 @@ class ATDomeTrajectoryTestCase(
                 f"must be > max_delta_azimuth={max_delta_azimuth}"
             )
 
-        self.atmcs_controller.evt_target.set_put(
+        await self.atmcs_controller.evt_target.set_write(
             elevation=elevation, azimuth=azimuth, force_output=True
         )
         await self.assert_dome_az(azimuth, move_expected=True)
@@ -266,7 +265,7 @@ class ATDomeTrajectoryTestCase(
             curr_pos = await self.dome_remote.tel_position.next(
                 flush=True, timeout=STD_TIMEOUT
             )
-            if salobj.angle_diff(curr_pos.azimuthPosition, azimuth).deg < 0.1:
+            if utils.angle_diff(curr_pos.azimuthPosition, azimuth).deg < 0.1:
                 break
 
     async def check_null_moves(self, elevation):
@@ -287,7 +286,7 @@ class ATDomeTrajectoryTestCase(
             azimuth + no_move_daz_deg,
             azimuth,
         ):
-            self.atmcs_controller.evt_target.set_put(
+            await self.atmcs_controller.evt_target.set_write(
                 elevation=elevation, azimuth=target_azimuth, force_output=True
             )
             await self.assert_dome_az(azimuth, move_expected=False)

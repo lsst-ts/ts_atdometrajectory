@@ -25,6 +25,7 @@ import math
 
 from . import base_algorithm
 from lsst.ts import salobj
+from lsst.ts import utils
 
 RAD_PER_DEG = math.pi / 180
 
@@ -63,7 +64,7 @@ class SimpleAlgorithm(base_algorithm.BaseAlgorithm):
             return telescope_target.azimuth.position
 
         # scaled_delta_azimuth is the difference multiplied by cos(target alt).
-        scaled_delta_azimuth = salobj.angle_diff(
+        scaled_delta_azimuth = utils.angle_diff(
             telescope_target.azimuth.position, dome_target_azimuth
         ).deg * math.cos(telescope_target.elevation.position * RAD_PER_DEG)
         if abs(scaled_delta_azimuth) < self.max_delta_azimuth:

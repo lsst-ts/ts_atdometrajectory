@@ -23,8 +23,9 @@ import asyncio
 import time
 import unittest
 
-from lsst.ts import salobj
 from lsst.ts import ATDomeTrajectory
+from lsst.ts import salobj
+from lsst.ts import utils
 from lsst.ts.idl.enums.ATDome import AzimuthCommandedState
 
 STD_TIMEOUT = 5  # standard command timeout (sec)
@@ -47,7 +48,7 @@ class MockDomeTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase)
             position = await self.remote.tel_position.next(
                 flush=True, timeout=STD_TIMEOUT
             )
-            salobj.assertAnglesAlmostEqual(position.azimuthPosition, 0)
+            utils.assert_angles_almost_equal(position.azimuthPosition, 0)
 
             for az in (3, -1):
                 predicted_duration = (
@@ -67,7 +68,7 @@ class MockDomeTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase)
                     self.remote.evt_azimuthCommandedState,
                     commandedState=AzimuthCommandedState.GOTOPOSITION,
                 )
-                salobj.assertAnglesAlmostEqual(az_cmd_state.azimuth, az)
+                utils.assert_angles_almost_equal(az_cmd_state.azimuth, az)
 
                 isfirst = True
                 while True:
@@ -77,9 +78,11 @@ class MockDomeTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase)
                     if isfirst:
                         isfirst = False
                         with self.assertRaises(AssertionError):
-                            salobj.assertAnglesAlmostEqual(position.azimuthPosition, az)
+                            utils.assert_angles_almost_equal(
+                                position.azimuthPosition, az
+                            )
                     elif time.time() > safe_done_end_time:
-                        salobj.assertAnglesAlmostEqual(position.azimuthPosition, az)
+                        utils.assert_angles_almost_equal(position.azimuthPosition, az)
                         break
                     await asyncio.sleep(self.csc.telemetry_interval)
 
