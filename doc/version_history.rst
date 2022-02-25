@@ -6,6 +6,22 @@
 Version History
 ###############
 
+v1.7.0
+------
+
+Changes:
+
+* Update for ts_salobj v7, which is required.
+  This also requires ts_xml 11.
+* Use ts_utils and pytest-black.
+
+Requirements:
+
+* ts_salobj 7
+* ts_idl 2
+* ts_utils 1
+* IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 11
+
 v1.6.0
 ------
 

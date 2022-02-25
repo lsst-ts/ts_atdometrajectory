@@ -24,6 +24,7 @@ import asyncio
 import math
 
 from lsst.ts import salobj
+from lsst.ts import utils
 
 
 class MockDome(salobj.BaseCsc):
@@ -56,7 +57,7 @@ class MockDome(salobj.BaseCsc):
 
     async def start(self):
         await super().start()
-        self.evt_azimuthCommandedState.set_put(
+        await self.evt_azimuthCommandedState.set_write(
             commandedState=1, azimuth=math.nan, force_output=True  # 1 = Unknown
         )
 
@@ -64,20 +65,20 @@ class MockDome(salobj.BaseCsc):
         self.move_azimuth_task.cancel()
         await super().close_tasks()
 
-    def do_moveAzimuth(self, data):
+    async def do_moveAzimuth(self, data):
         """Support the moveAzimuth command."""
         self.assert_enabled("moveAzimuth")
         self.cmd_az = data.azimuth
-        self.evt_azimuthCommandedState.set_put(
+        await self.evt_azimuthCommandedState.set_write(
             commandedState=2,  # 2 = GoToPosition
             azimuth=data.azimuth,
             force_output=True,
         )
 
-    def report_summary_state(self):
-        super().report_summary_state()
+    async def handle_summary_state(self):
+        await super().handle_summary_state()
         if self.disabled_or_enabled:
-            self.move_azimuth_task = asyncio.ensure_future(self.move_azimuth_loop())
+            self.move_azimuth_task = asyncio.create_task(self.move_azimuth_loop())
         elif not self.move_azimuth_task.done():
             self.move_azimuth_task.cancel()
 
@@ -90,11 +91,11 @@ class MockDome(salobj.BaseCsc):
                     self.summary_state == salobj.State.ENABLED
                     and self.cmd_az != self.curr_az
                 ):
-                    az_err = salobj.angle_diff(self.cmd_az, self.curr_az).deg
+                    az_err = utils.angle_diff(self.cmd_az, self.curr_az).deg
                     abs_az_corr = min(abs(az_err), max_az_corr)
                     az_corr = abs_az_corr if az_err >= 0 else -abs_az_corr
                     self.curr_az += az_corr
-                self.tel_position.set_put(azimuthPosition=self.curr_az)
+                await self.tel_position.set_write(azimuthPosition=self.curr_az)
                 await asyncio.sleep(self.telemetry_interval)
         except asyncio.CancelledError:
             raise
