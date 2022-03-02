@@ -19,12 +19,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import pathlib
 import unittest
 
 import jsonschema
+import pytest
+import yaml
 
 from lsst.ts import salobj
 from lsst.ts import ATDomeTrajectory
+
+TEST_CONFIG_DIR = pathlib.Path(__file__).parent / "data" / "config"
 
 
 class ValidationTestCase(unittest.TestCase):
@@ -32,41 +37,45 @@ class ValidationTestCase(unittest.TestCase):
 
     def setUp(self):
         self.schema = ATDomeTrajectory.CONFIG_SCHEMA
-        self.validator = salobj.DefaultingValidator(schema=self.schema)
+        self.validator = salobj.StandardValidator(schema=self.schema)
+        with open(TEST_CONFIG_DIR / "_init.yaml", "r") as f:
+            raw_config = f.read()
+        self.init_config = yaml.safe_load(raw_config)
+        self.validator.validate(self.init_config)
 
-    def test_default(self):
-        default_max_daz = 5  # hard-coded in the schema
-        result = self.validator.validate(None)
-        self.assertEqual(result["algorithm_name"], "simple")
-        self.assertEqual(result["simple"], dict(max_delta_azimuth=default_max_daz))
+    def test_good_files(self):
+        config = self.init_config.copy()
+        self.assertEqual(config["algorithm_name"], "simple")
+        self.assertEqual(config["simple"], dict(max_delta_azimuth=5))
 
-    def test_name_specified(self):
-        default_max_daz = 5  # hard-coded in the schema
-        data = dict(algorithm_name="simple")
-        result = self.validator.validate(data)
-        self.assertEqual(result["algorithm_name"], "simple")
-        self.assertEqual(result["simple"], dict(max_delta_azimuth=default_max_daz))
+        with open(TEST_CONFIG_DIR / "valid.yaml", "r") as f:
+            raw_config = f.read()
+        config.update(yaml.safe_load(raw_config))
+        self.validator.validate(config)
+        self.assertEqual(config["algorithm_name"], "simple")
+        self.assertEqual(config["simple"], dict(max_delta_azimuth=7.1))
 
-    def test_all_specified(self):
-        max_delta_azimuth = 3.5
-        data = dict(
-            algorithm_name="simple",
-            simple=dict(max_delta_azimuth=max_delta_azimuth),
-        )
-        result = self.validator.validate(data)
-        self.assertEqual(result["algorithm_name"], "simple")
-        self.assertEqual(result["simple"], dict(max_delta_azimuth=max_delta_azimuth))
+    def test_bad_files(self):
+        for path in TEST_CONFIG_DIR.glob("invalid*.yaml"):
+            config = self.init_config.copy()
+            with open(path, "r") as f:
+                raw_config = f.read()
+            bad_config = yaml.safe_load(raw_config)
+            if path.name == "invalid_malformed.yaml":
+                assert not isinstance(bad_config, dict)
+            else:
+                # File is valid but the config is not
+                config.update(bad_config)
+                with pytest.raises(jsonschema.exceptions.ValidationError):
+                    self.validator.validate(config)
 
-    def test_bad_algorithm_name(self):
-        data = dict(algorithm_name="invalid_name")
-        with self.assertRaises(jsonschema.exceptions.ValidationError):
-            self.validator.validate(data)
-
-    def test_bad_algorithm_config(self):
-        """The current schema only checks for a dict."""
-        data = dict(algorithm_name="simple", simple=45)
-        with self.assertRaises(jsonschema.exceptions.ValidationError):
-            self.validator.validate(data)
+    def test_missing_fields(self):
+        for field in self.init_config:
+            with self.subTest(field=field):
+                bad_config = self.init_config.copy()
+                del bad_config[field]
+                with pytest.raises(jsonschema.exceptions.ValidationError):
+                    self.validator.validate(bad_config)
 
 
 if __name__ == "__main__":
