@@ -26,6 +26,7 @@ import yaml
 
 from lsst.ts import salobj
 from lsst.ts import simactuators
+from lsst.ts import utils
 from lsst.ts.idl.enums.ATDome import AzimuthCommandedState
 from . import __version__
 from .config_schema import CONFIG_SCHEMA
@@ -53,9 +54,9 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         The initial state of the CSC. Typically one of:
         - State.ENABLED if you want the CSC immediately usable.
         - State.STANDBY if you want full emulation of a CSC.
-    settings_to_apply : `str`, optional
-        Settings to apply if ``initial_state`` is `State.DISABLED`
-        or `State.ENABLED`.
+    override : `str`, optional
+        Configuration override to apply if ``initial_state`` is
+        `State.DISABLED` or `State.ENABLED`.
     """
 
     valid_simulation_modes = [0]
@@ -65,18 +66,8 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         self,
         config_dir=None,
         initial_state=salobj.base_csc.State.STANDBY,
-        settings_to_apply="",
+        override="",
     ):
-        super().__init__(
-            name="ATDomeTrajectory",
-            config_schema=CONFIG_SCHEMA,
-            config_dir=config_dir,
-            index=None,
-            initial_state=initial_state,
-            settings_to_apply=settings_to_apply,
-            simulation_mode=0,
-        )
-
         # Commanded dome azimuth (deg), from the ATDome azimuthCommandedState
         # event; None before the event is seen.
         self.dome_target_azimuth = None
@@ -92,11 +83,21 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         # This avoids the problem of new telescope target events
         # causing unwanted motion when the dome has been commanded
         # but has not yet had a chance to report the fact.
-        self.move_dome_azimuth_task = salobj.make_done_future()
+        self.move_dome_azimuth_task = utils.make_done_future()
 
         # Next telescope target, eventually from the scheduler;
         # an ElevationAzimuth; None before the next target is seen;
         self.next_telescope_target = None
+
+        super().__init__(
+            name="ATDomeTrajectory",
+            config_schema=CONFIG_SCHEMA,
+            config_dir=config_dir,
+            index=None,
+            initial_state=initial_state,
+            override=override,
+            simulation_mode=0,
+        )
 
         self.atmcs_remote = salobj.Remote(
             domain=self.domain, name="ATMCS", include=["target"]
@@ -138,7 +139,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
             raise salobj.ExpectedError(f"Unknown algorithm {algorithm_name}")
         algorithm_config = getattr(config, config.algorithm_name)
         self.algorithm = AlgorithmRegistry[config.algorithm_name](**algorithm_config)
-        self.evt_algorithm.set_put(
+        await self.evt_algorithm.set_write(
             algorithmName=config.algorithm_name,
             algorithmConfig=yaml.dump(algorithm_config),
         )
@@ -183,10 +184,10 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         self.assert_enabled()
         if data.enable:
             # Report following enabled and trigger an update
-            self.evt_followingMode.set_put(enabled=True)
+            await self.evt_followingMode.set_write(enabled=True)
             await self.follow_target()
         else:
-            self.evt_followingMode.set_put(enabled=False)
+            await self.evt_followingMode.set_write(enabled=False)
             self.move_dome_azimuth_task.cancel()
 
     async def follow_target(self):
@@ -215,7 +216,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
     async def handle_summary_state(self):
         if not self.summary_state == salobj.State.ENABLED:
             self.move_dome_azimuth_task.cancel()
-            self.evt_followingMode.set_put(enabled=False)
+            await self.evt_followingMode.set_write(enabled=False)
 
     async def move_dome_azimuth(self, desired_dome_azimuth):
         """Start moving the dome in azimuth.

@@ -28,7 +28,7 @@ CONFIG_SCHEMA = yaml.safe_load(
     """$schema: http://json-schema.org/draft-07/schema#
 $id: https://github.com/lsst-ts/ts_ATDomeTrajectory/blob/master/python/lsst/ts/ATDomeTrajectory.py
 # title must end with one or more spaces followed by the schema version, which must begin with "v"
-title: ATDomeTrajectory v1
+title: ATDomeTrajectory v2
 description: Schema for ATDomeTrajectory configuration files
 type: object
 properties:
@@ -36,7 +36,6 @@ properties:
     type: string
     enum:
     - simple
-    default: simple
   simple:
     description: Configuration for the "simple" algorithm.
     type: object
@@ -45,11 +44,13 @@ properties:
         type: number
         description: ->
           Maximum difference between dome and telescope azimuth before moving the dome (deg).
-          The default value is nearly where the dome vignettes the telescope.
-        default: 5
+          Set to the largest value that reliably avoids vignetting.
     required:
     - max_delta_azimuth
     additionalProperties: false
+required:
+- algorithm_name
+- simple
 additionalProperties: false
 """
 )

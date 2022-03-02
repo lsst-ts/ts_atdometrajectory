@@ -1,0 +1,3 @@
+algorithm_name: simple
+simple:
+  max_delta_azimuth: 5
