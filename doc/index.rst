@@ -13,7 +13,7 @@ lsst.ts.ATDomeTrajectory
 .. image:: https://img.shields.io/badge/GitHub-gray.svg
     :target: https://github.com/lsst-ts/ts_ATDomeTrajectory
 .. image:: https://img.shields.io/badge/Jira-gray.svg
-    :target: https://jira.lsstcorp.org/issues/?jql=labels+%3D+ts_ATDomeTrajectory
+    :target: https://jira.lsstcorp.org/issues/?jql=project%3DDM%20AND%20labels%3Dts_ATDomeTrajectory
 
 Overview
 ========
