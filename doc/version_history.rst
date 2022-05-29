@@ -6,6 +6,15 @@
 Version History
 ###############
 
+v1.8.0
+------
+
+Changes:
+
+* Rename command-line scripts to remove ".py" suffix.
+* Add ``Jenkinsfile`` for continuous integration.
+* Build with pyproject.toml.
+
 v1.7.0
 ------
 
