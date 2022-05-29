@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-__all__ = ["ATDomeTrajectory"]
+__all__ = ["ATDomeTrajectory", "run_atdometrajectory"]
 
 import asyncio
 
@@ -233,3 +233,8 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
     async def start(self):
         await super().start()
         await self.dome_remote.start_task
+
+
+def run_atdometrajectory():
+    """Run the ATDomeTrajectory CSC."""
+    asyncio.run(ATDomeTrajectory.amain(index=None))
