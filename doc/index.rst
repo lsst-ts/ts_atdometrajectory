@@ -37,7 +37,7 @@ Start the ATDomeTrajectory CSC as follows:
 
 .. prompt:: bash
 
-    run_atdometrajectory.py
+    run_atdometrajectory
 
 Stop the CSC by sending it to the OFFLINE state.
 
