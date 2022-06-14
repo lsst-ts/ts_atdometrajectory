@@ -77,11 +77,11 @@ class ATDomeTrajectoryTestCase(
         )
 
     async def test_bin_script(self):
-        """Test that run_atdometrajectory.py runs the CSC."""
+        """Test that run_atdometrajectory runs the CSC."""
         await self.check_bin_script(
             name="ATDomeTrajectory",
             index=None,
-            exe_name="run_atdometrajectory.py",
+            exe_name="run_atdometrajectory",
         )
 
     async def test_standard_state_transitions(self):
