@@ -1,4 +1,4 @@
-# This file is part of ts_ATDomeTrajectory.
+# This file is part of ts_atdometrajectory.
 #
 # Developed for Vera C. Rubin Observatory Telescope and Site Systems.
 # This product includes software developed by the LSST Project
@@ -23,7 +23,7 @@ import asyncio
 import time
 import unittest
 
-from lsst.ts import ATDomeTrajectory
+from lsst.ts import atdometrajectory
 from lsst.ts import salobj
 from lsst.ts import utils
 from lsst.ts.idl.enums.ATDome import AzimuthCommandedState
@@ -33,7 +33,7 @@ STD_TIMEOUT = 5  # standard command timeout (sec)
 
 class MockDomeTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase):
     def basic_make_csc(self, initial_state, config_dir, simulation_mode):
-        return ATDomeTrajectory.MockDome(initial_state=initial_state)
+        return atdometrajectory.MockDome(initial_state=initial_state)
 
     async def test_move_azimuth(self):
         """Test issuing moveAzimuth commands to ATDome."""

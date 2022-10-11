@@ -1,4 +1,4 @@
-# This file is part of ts_ATDomeTrajectory.
+# This file is part of ts_atdometrajectory.
 #
 # Developed for Vera C. Rubin Observatory Telescope and Site Systems.
 # This product includes software developed by the LSST Project
@@ -28,7 +28,7 @@ import unittest
 
 import yaml
 
-from lsst.ts import ATDomeTrajectory
+from lsst.ts import atdometrajectory
 from lsst.ts import salobj
 from lsst.ts import utils
 from lsst.ts.idl.enums.ATDome import AzimuthCommandedState
@@ -59,7 +59,7 @@ class ATDomeTrajectoryTestCase(
             override=override,
             simulation_mode=simulation_mode,
             log_level=log_level,
-        ), ATDomeTrajectory.MockDome(
+        ), atdometrajectory.MockDome(
             initial_state=salobj.State.ENABLED
         ) as self.dome_csc, salobj.Remote(
             domain=self.dome_csc.domain, name="ATDome"
@@ -70,7 +70,7 @@ class ATDomeTrajectoryTestCase(
 
     def basic_make_csc(self, initial_state, config_dir, simulation_mode, override):
         self.assertEqual(simulation_mode, 0)
-        return ATDomeTrajectory.ATDomeTrajectory(
+        return atdometrajectory.ATDomeTrajectory(
             initial_state=initial_state,
             config_dir=config_dir,
             override=override,
@@ -132,7 +132,7 @@ class ATDomeTrajectoryTestCase(
         async with self.make_csc(initial_state=salobj.State.STANDBY):
             await self.assert_next_sample(
                 self.remote.evt_softwareVersions,
-                cscVersion=ATDomeTrajectory.__version__,
+                cscVersion=atdometrajectory.__version__,
                 subsystemVersions="",
             )
 

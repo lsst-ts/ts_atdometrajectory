@@ -26,7 +26,7 @@ import yaml
 
 CONFIG_SCHEMA = yaml.safe_load(
     """$schema: http://json-schema.org/draft-07/schema#
-$id: https://github.com/lsst-ts/ts_ATDomeTrajectory/blob/master/python/lsst/ts/ATDomeTrajectory.py
+$id: https://github.com/lsst-ts/ts_atdometrajectory/blob/main/python/lsst/ts/atdometrajectory/config_schema.py
 # title must end with one or more spaces followed by the schema version, which must begin with "v"
 title: ATDomeTrajectory v2
 description: Schema for ATDomeTrajectory configuration files

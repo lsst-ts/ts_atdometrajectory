@@ -4,9 +4,9 @@ This configuration only affects single-package Sphinx documentation builds.
 """
 
 from documenteer.conf.pipelinespkg import *  # type: ignore # noqa
-import lsst.ts.ATDomeTrajectory  # noqa
+import lsst.ts.atdometrajectory  # noqa
 
-project = "ts_ATDomeTrajectory"
+project = "ts_atdometrajectory"
 html_theme_options["logotext"] = project  # type: ignore # noqa
 html_title = project
 html_short_title = project
