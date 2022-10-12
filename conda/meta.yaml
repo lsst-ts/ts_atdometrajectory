@@ -10,7 +10,7 @@ build:
   noarch: generic
   script: python -m pip install --no-deps --ignore-installed .
   entry_points:
-    - run_atdometrajectory = lsst.ts.ATDomeTrajectory:run_atdometrajectory
+    - run_atdometrajectory = lsst.ts.atdometrajectory:run_atdometrajectory
   script_env:
     - PATH
     - PYTHONPATH

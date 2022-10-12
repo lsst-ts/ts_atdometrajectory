@@ -1,4 +1,4 @@
-# This file is part of ts_ATDomeTrajectory.
+# This file is part of ts_atdometrajectory.
 #
 # Developed for Vera C. Rubin Observatory Telescope and Site Systems.
 # This product includes software developed by the LSST Project

@@ -1,9 +1,9 @@
-.. py:currentmodule:: lsst.ts.ATDomeTrajectory
+.. py:currentmodule:: lsst.ts.atdometrajectory
 
-.. _lsst.ts.ATDomeTrajectory:
+.. _lsst.ts.atdometrajectory:
 
 ########################
-lsst.ts.ATDomeTrajectory
+lsst.ts.atdometrajectory
 ########################
 
 .. image:: https://img.shields.io/badge/Project Metadata-gray.svg
@@ -11,9 +11,9 @@ lsst.ts.ATDomeTrajectory
 .. image:: https://img.shields.io/badge/SAL\ Interface-gray.svg
     :target: https://ts-xml.lsst.io/sal_interfaces/ATDomeTrajectory.html
 .. image:: https://img.shields.io/badge/GitHub-gray.svg
-    :target: https://github.com/lsst-ts/ts_ATDomeTrajectory
+    :target: https://github.com/lsst-ts/ts_atdometrajectory
 .. image:: https://img.shields.io/badge/Jira-gray.svg
-    :target: https://jira.lsstcorp.org/issues/?jql=project%3DDM%20AND%20labels%3Dts_ATDomeTrajectory
+    :target: https://jira.lsstcorp.org/issues/?jql=project%3DDM%20AND%20labels%3Dts_atdometrajectory
 
 Overview
 ========
@@ -28,7 +28,7 @@ ATDomeTrajectory supports multiple algorithms for determining how to move the do
 .. _ATMCS CSC: https://ts-atmcs.lsst.io
 .. _ATMCSSimulator CSC: https://ts-atmcssimulator.lsst.io
 
-.. _lsst.ts.ATDomeTrajectory-user_guide:
+.. _lsst.ts.atdometrajectory-user_guide:
 
 User Guide
 ==========
@@ -52,7 +52,7 @@ To move the dome to a specified azimuth that is different from the telescope's a
 
 ATDomeTrajectory can support multiple algorithms for making the dome follow the telescope;
 but at the time of this writing, there is only one.
-The algorithm is specified and configured in :ref:`configuration <lsst.ts.ATDomeTrajectory-configuration>`.
+The algorithm is specified and configured in :ref:`configuration <lsst.ts.atdometrajectory-configuration>`.
 
 Simulation
 ----------
@@ -63,12 +63,12 @@ ATDomeTrajectory does not have a simulation mode of its own.
 .. _setEnabledMode command: https://ts-xml.lsst.io/sal_interfaces/ATDomeTrajectory.html#setenabledmode
 .. _moveAzimuth command: https://ts-xml.lsst.io/sal_interfaces/ATDome.html#moveazimuth
 
-.. _lsst.ts.ATDomeTrajectory-configuration:
+.. _lsst.ts.atdometrajectory-configuration:
 
 Configuration
 -------------
 
-Configuration is defined by `CONFIG_SCHEMA <https://github.com/lsst-ts/ts_ATDomeTrajectory/blob/develop/python/lsst/ts/ATDomeTrajectory/config_schema.py>`_.
+Configuration is defined by `CONFIG_SCHEMA <https://github.com/lsst-ts/ts_atdometrajectory/blob/main/python/lsst/ts/atdometrajectory/config_schema.py>`_.
 Configuration primarily consists of specifying the control algorithm and its associated parameters.
 
 Available algorithms:

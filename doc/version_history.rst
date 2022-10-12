@@ -1,24 +1,42 @@
-.. py:currentmodule:: lsst.ts.ATDomeTrajectory
+.. py:currentmodule:: lsst.ts.atdometrajectory
 
-.. _lsst.ts.ATDomeTrajectory.version_history:
+.. _lsst.ts.atdometrajectory.version_history:
 
 ###############
 Version History
 ###############
 
-v1.8.0
+v1.9.0
 ------
 
-Changes:
+* `MockDome`: use allow_missing_callbacks to simplify the code.
+  This requires ts_salobj 7.2.
+* ``Jenkinsfile`` CI: change HOME to WHOME (except in the cleanup section).
+* Rename package from ts_ATDomeTrajectory to ts_atdometrajectory.
+
+Requirements:
+
+* ts_salobj 7.2
+* ts_idl 2
+* ts_utils 1
+* IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 11
+
+v1.8.0
+------
 
 * Rename command-line scripts to remove ".py" suffix.
 * Add ``Jenkinsfile`` for continuous integration.
 * Build with pyproject.toml.
 
+Requirements:
+
+* ts_salobj 7
+* ts_idl 2
+* ts_utils 1
+* IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 11
+
 v1.7.0
 ------
-
-Changes:
 
 * Update for ts_salobj v7, which is required.
   This also requires ts_xml 11.
@@ -33,8 +51,6 @@ Requirements:
 
 v1.6.0
 ------
-
-Changes:
 
 * Support the ``setFollowingMode`` command.
   This requires ts_xml 9.
@@ -60,8 +76,6 @@ Requirements:
 v1.5.1
 ------
 
-Changes:
-
 * Fix handling of a missing ``version.py`` file.
 * Modernize ``Jenkinsfile.conda``.
 
@@ -74,8 +88,6 @@ Requirements:
 
 v1.5.0
 ------
-
-Changes:
 
 * Store the CSC configuration schema in code.
   This requires ts_salobj 6.3.
@@ -90,8 +102,6 @@ Requirements:
 v1.4.7
 ------
 
-Changes:
-
 * Modernize doc/conf.py for documenteer 0.6.
 
 Requirements:
@@ -103,8 +113,6 @@ Requirements:
 v1.4.6
 ------
 
-Changes:
-
 * `ATDomeTrajectory`: add ``version`` class attribute, which is used to set the ``cscVersion`` field of the ``softwareVersions`` event.
 
 Requirements:
@@ -115,8 +123,6 @@ Requirements:
 
 v1.4.5
 ------
-
-Changes:
 
 * Improve `MockATDome` shutdown.
 * Improve reliability of a unit test of `MockATDome`.
@@ -130,8 +136,6 @@ Requirements:
 v1.4.4
 ------
 
-Changes:
-
 * Modernize the documentation.
 * Rename ``FakeATDome`` to `MockATDome`.
 
@@ -144,8 +148,6 @@ Requirements:
 v1.4.3
 ------
 
-Changes:
-
 * Pin version of black in meta.yaml.
 
 Requirements:
@@ -156,8 +158,6 @@ Requirements:
 
 v1.4.2
 ------
-
-Changes:
 
 * Remove the ``simulation_mode`` constructor argument from `ATDomeTrajectory`
   and updated associated documentation.
@@ -173,8 +173,6 @@ Requirements:
 v1.4.1
 ------
 
-Changes:
-
 * Added missing ts_simactuators to the list of dependencies.
 
 Requirements:
@@ -185,8 +183,6 @@ Requirements:
 
 v1.4.0
 ------
-
-Changes:
 
 * Add next target support to the algorithms (but not the CSC, yet).
 * Modernize the code and make it more like MTDomeTrajectory.
@@ -200,8 +196,6 @@ Requirements:
 v1.3.4
 ------
 
-Changes:
-
 * Add black to conda test dependencies
 
 Requirements:
@@ -213,8 +207,6 @@ Requirements:
 v1.3.3
 ------
 
-Changes:
-
 * Add ``tests/test_black.py`` to verify that files are formatted with black.
   This requires ts_salobj 5.11 or later.
 * Modernized the test of the bin script, which also made it compatible with salobj 5.12.
@@ -223,8 +215,6 @@ Changes:
 
 v1.3.2
 ------
-
-Changes:
 
 * Fix the ``Contributing`` entry in ``index.rst``.
 
