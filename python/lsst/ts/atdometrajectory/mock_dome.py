@@ -48,7 +48,12 @@ class MockDome(salobj.BaseCsc):
     version = "mock"
 
     def __init__(self, initial_state):
-        super().__init__(name="ATDome", index=None, initial_state=initial_state)
+        super().__init__(
+            name="ATDome",
+            index=None,
+            initial_state=initial_state,
+            allow_missing_callbacks=True,
+        )
         self.curr_az = 0
         self.cmd_az = 0
         self.az_vel = 3  # deg/sec
@@ -102,27 +107,3 @@ class MockDome(salobj.BaseCsc):
         except Exception:
             self.log.exception("move_azimuth_loop failed")
             raise
-
-    def do_moveShutterDropoutDoor(self, data):
-        """This command is not supported."""
-        raise salobj.ExpectedError("Not implemented")
-
-    def do_closeShutter(self, data):
-        """This command is not supported."""
-        raise salobj.ExpectedError("Not implemented")
-
-    def do_homeAzimuth(self, data):
-        """This command is not supported."""
-        raise salobj.ExpectedError("Not implemented")
-
-    def do_stopMotion(self, data):
-        """This command is not supported."""
-        raise salobj.ExpectedError("Not implemented")
-
-    def do_openShutter(self, data):
-        """This command is not supported."""
-        raise salobj.ExpectedError("Not implemented")
-
-    def do_moveShutterMainDoor(self, data):
-        """This command is not supported."""
-        raise salobj.ExpectedError("Not implemented")
