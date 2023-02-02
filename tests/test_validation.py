@@ -45,15 +45,15 @@ class ValidationTestCase(unittest.TestCase):
 
     def test_good_files(self):
         config = self.init_config.copy()
-        self.assertEqual(config["algorithm_name"], "simple")
-        self.assertEqual(config["simple"], dict(max_delta_azimuth=5))
+        assert config["algorithm_name"] == "simple"
+        assert config["simple"] == dict(max_delta_azimuth=5)
 
         with open(TEST_CONFIG_DIR / "valid.yaml", "r") as f:
             raw_config = f.read()
         config.update(yaml.safe_load(raw_config))
         self.validator.validate(config)
-        self.assertEqual(config["algorithm_name"], "simple")
-        self.assertEqual(config["simple"], dict(max_delta_azimuth=7.1))
+        assert config["algorithm_name"] == "simple"
+        assert config["simple"] == dict(max_delta_azimuth=7.1)
 
     def test_bad_files(self):
         for path in TEST_CONFIG_DIR.glob("invalid*.yaml"):

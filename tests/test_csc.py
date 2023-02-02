@@ -26,6 +26,7 @@ import os
 import pathlib
 import unittest
 
+import pytest
 import yaml
 
 from lsst.ts import atdometrajectory
@@ -69,7 +70,7 @@ class ATDomeTrajectoryTestCase(
             yield
 
     def basic_make_csc(self, initial_state, config_dir, simulation_mode, override):
-        self.assertEqual(simulation_mode, 0)
+        assert simulation_mode == 0
         return atdometrajectory.ATDomeTrajectory(
             initial_state=initial_state,
             config_dir=config_dir,
@@ -142,8 +143,8 @@ class ATDomeTrajectoryTestCase(
             desired_config_dir = (
                 pathlib.Path(desird_config_pkg_dir) / "ATDomeTrajectory/v2"
             )
-            self.assertEqual(self.csc.get_config_pkg(), desired_config_pkg_name)
-            self.assertEqual(self.csc.config_dir, desired_config_dir)
+            assert self.csc.get_config_pkg() == desired_config_pkg_name
+            assert self.csc.config_dir == desired_config_dir
             await self.csc.do_exitControl(data=None)
             await asyncio.wait_for(self.csc.done_task, timeout=5)
 
@@ -173,8 +174,8 @@ class ATDomeTrajectoryTestCase(
                 self.remote.evt_algorithm, algorithmName="simple"
             )
             # max_delta_azimuth=7.1 is hard coded in the yaml file
-            self.assertEqual(
-                yaml.safe_load(settings.algorithmConfig), dict(max_delta_azimuth=7.1)
+            assert yaml.safe_load(settings.algorithmConfig) == dict(
+                max_delta_azimuth=7.1
             )
 
     async def assert_dome_az(self, azimuth, move_expected):
@@ -202,7 +203,7 @@ class ATDomeTrajectoryTestCase(
             )
             utils.assert_angles_almost_equal(az_cmd_state.azimuth, azimuth)
         else:
-            with self.assertRaises(asyncio.TimeoutError):
+            with pytest.raises(asyncio.TimeoutError):
                 await self.dome_remote.evt_azimuthCommandedState.next(
                     flush=False, timeout=NODATA_TIMEOUT
                 )

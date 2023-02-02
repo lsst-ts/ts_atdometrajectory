@@ -23,6 +23,8 @@ import asyncio
 import time
 import unittest
 
+import pytest
+
 from lsst.ts import atdometrajectory
 from lsst.ts import salobj
 from lsst.ts import utils
@@ -77,7 +79,7 @@ class MockDomeTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase)
                     )
                     if isfirst:
                         isfirst = False
-                        with self.assertRaises(AssertionError):
+                        with pytest.raises(AssertionError):
                             utils.assert_angles_almost_equal(
                                 position.azimuthPosition, az
                             )
