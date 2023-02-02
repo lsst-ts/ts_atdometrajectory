@@ -47,6 +47,12 @@ class ValidationTestCase(unittest.TestCase):
         config = self.init_config.copy()
         assert config["algorithm_name"] == "simple"
         assert config["simple"] == dict(max_delta_azimuth=5)
+        assert config["azimuth_vignette_min"] == 10.1
+        assert config["azimuth_vignette_max"] == 25.1
+        assert config["dropout_door_vignette_min"] == 27.1
+        assert config["dropout_door_vignette_max"] == 15.1
+        assert config["dome_inner_radius"] == 5000
+        assert config["telescope_height_offset"] == 1000
 
         with open(TEST_CONFIG_DIR / "valid.yaml", "r") as f:
             raw_config = f.read()
@@ -54,20 +60,27 @@ class ValidationTestCase(unittest.TestCase):
         self.validator.validate(config)
         assert config["algorithm_name"] == "simple"
         assert config["simple"] == dict(max_delta_azimuth=7.1)
+        assert config["azimuth_vignette_min"] == 11.2
+        assert config["azimuth_vignette_max"] == 26.2
+        assert config["dropout_door_vignette_min"] == 28.2
+        assert config["dropout_door_vignette_max"] == 16.2
+        assert config["dome_inner_radius"] == 5050.5
+        assert config["telescope_height_offset"] == 1010.1
 
     def test_bad_files(self):
         for path in TEST_CONFIG_DIR.glob("invalid*.yaml"):
-            config = self.init_config.copy()
-            with open(path, "r") as f:
-                raw_config = f.read()
-            bad_config = yaml.safe_load(raw_config)
-            if path.name == "invalid_malformed.yaml":
-                assert not isinstance(bad_config, dict)
-            else:
-                # File is valid but the config is not
-                config.update(bad_config)
-                with pytest.raises(jsonschema.exceptions.ValidationError):
-                    self.validator.validate(config)
+            with self.subTest(path=path):
+                config = self.init_config.copy()
+                with open(path, "r") as f:
+                    raw_config = f.read()
+                bad_config = yaml.safe_load(raw_config)
+                if path.name == "invalid_malformed.yaml":
+                    assert not isinstance(bad_config, dict)
+                else:
+                    # File is valid but the config is not
+                    config.update(bad_config)
+                    with pytest.raises(jsonschema.exceptions.ValidationError):
+                        self.validator.validate(config)
 
     def test_missing_fields(self):
         for field in self.init_config:
