@@ -28,7 +28,7 @@ import pytest
 from lsst.ts import atdometrajectory
 from lsst.ts import salobj
 from lsst.ts import utils
-from lsst.ts.idl.enums.ATDome import AzimuthCommandedState
+from lsst.ts.idl.enums.ATDome import AzimuthCommandedState, ShutterDoorState
 
 STD_TIMEOUT = 5  # standard command timeout (sec)
 
@@ -43,8 +43,14 @@ class MockDomeTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase)
             await self.assert_next_summary_state(salobj.State.ENABLED)
 
             await self.assert_next_sample(
-                self.remote.evt_azimuthCommandedState,
+                topic=self.remote.evt_azimuthCommandedState,
                 commandedState=AzimuthCommandedState.UNKNOWN,
+            )
+            await self.assert_next_sample(
+                topic=self.remote.evt_dropoutDoorState, state=ShutterDoorState.OPENED
+            )
+            await self.assert_next_sample(
+                topic=self.remote.evt_mainDoorState, state=ShutterDoorState.OPENED
             )
 
             position = await self.remote.tel_position.next(
