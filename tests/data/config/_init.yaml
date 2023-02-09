@@ -1,3 +1,9 @@
 algorithm_name: simple
 simple:
   max_delta_azimuth: 5
+azimuth_vignette_min: 10.1
+azimuth_vignette_max: 25.1
+dropout_door_vignette_min: 27.1
+dropout_door_vignette_max: 15.1
+dome_inner_radius: 5000
+telescope_height_offset: 1000

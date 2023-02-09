@@ -6,6 +6,20 @@
 Version History
 ###############
 
+v1.10.0
+-------
+
+* `ATDomeTrajectory`: publish the ``telescopeVignetted`` event.
+  This requires ts_xml 16 and adds items to the config schema version, bumping it to version v3.
+* ``Jenkinsfile`` CI: do not run as root.
+
+Requirements:
+
+* ts_salobj 7.2
+* ts_idl 2
+* ts_utils 1
+* IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 16
+
 v1.9.0
 ------
 
