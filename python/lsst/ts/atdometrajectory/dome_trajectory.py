@@ -24,16 +24,14 @@ import asyncio
 import math
 
 import yaml
-
-from lsst.ts import salobj
-from lsst.ts import simactuators
-from lsst.ts import utils
+from lsst.ts import salobj, simactuators, utils
 from lsst.ts.idl.enums.ATDome import AzimuthCommandedState, ShutterDoorState
 from lsst.ts.idl.enums.ATDomeTrajectory import TelescopeVignetted
+
 from . import __version__
+from .base_algorithm import AlgorithmRegistry
 from .config_schema import CONFIG_SCHEMA
 from .elevation_azimuth import ElevationAzimuth
-from .base_algorithm import AlgorithmRegistry
 
 # Timeout for commands that should be executed quickly.
 STD_TIMEOUT = 5

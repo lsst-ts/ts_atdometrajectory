@@ -24,10 +24,7 @@ import time
 import unittest
 
 import pytest
-
-from lsst.ts import atdometrajectory
-from lsst.ts import salobj
-from lsst.ts import utils
+from lsst.ts import atdometrajectory, salobj, utils
 from lsst.ts.idl.enums.ATDome import AzimuthCommandedState, ShutterDoorState
 
 STD_TIMEOUT = 5  # standard command timeout (sec)

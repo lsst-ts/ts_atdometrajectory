@@ -28,10 +28,7 @@ import unittest
 
 import pytest
 import yaml
-
-from lsst.ts import atdometrajectory
-from lsst.ts import salobj
-from lsst.ts import utils
+from lsst.ts import atdometrajectory, salobj, utils
 from lsst.ts.idl.enums.ATDome import AzimuthCommandedState, ShutterDoorState
 from lsst.ts.idl.enums.ATDomeTrajectory import TelescopeVignetted
 
