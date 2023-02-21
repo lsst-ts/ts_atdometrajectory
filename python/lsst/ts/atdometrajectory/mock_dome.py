@@ -23,8 +23,7 @@ __all__ = ["MockDome"]
 import asyncio
 import math
 
-from lsst.ts import salobj
-from lsst.ts import utils
+from lsst.ts import salobj, utils
 from lsst.ts.idl.enums.ATDome import AzimuthCommandedState, ShutterDoorState
 
 

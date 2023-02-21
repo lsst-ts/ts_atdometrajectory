@@ -12,6 +12,7 @@ v1.10.0
 * `ATDomeTrajectory`: publish the ``telescopeVignetted`` event.
   This requires ts_xml 16 and adds items to the config schema version, bumping it to version v3.
 * ``Jenkinsfile`` CI: do not run as root.
+* pre-commit: update black to 23.1.0 and pre-commit-hooks to v4.4.0 and add isort.
 
 Requirements:
 

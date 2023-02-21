@@ -23,9 +23,9 @@ __all__ = ["SimpleAlgorithm"]
 
 import math
 
+from lsst.ts import salobj, utils
+
 from . import base_algorithm
-from lsst.ts import salobj
-from lsst.ts import utils
 
 RAD_PER_DEG = math.pi / 180
 
