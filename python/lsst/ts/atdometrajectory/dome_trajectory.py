@@ -244,7 +244,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         return side_a * math.sin(angle_c_rad) / math.sin(angle_a_rad)
 
     def compute_vignetted_by_azimuth(
-        self, dome_azimuth, telescope_azimuth, telescope_elevation
+        self, *, dome_azimuth, telescope_azimuth, telescope_elevation
     ):
         """Compute the ``azimuth`` field of the telescopeVignetted event.
 
@@ -262,17 +262,17 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         azimuth : `TelescopeVignetted`
             Telescope vignetted by azimuth mismatch between telescope and dome.
         """
-        if dome_azimuth is None:
+        if (
+            dome_azimuth is None
+            or telescope_azimuth is None
+            or telescope_elevation is None
+        ):
             return TelescopeVignetted.UNKNOWN
-        telescope_encoders = self.atmcs_remote.tel_mount_AzEl_Encoders.get()
-        if telescope_encoders is None:
-            return TelescopeVignetted.UNKNOWN
+
         abs_azimuth_difference = abs(
             utils.angle_diff(dome_azimuth, telescope_azimuth).deg
         )
-
         distance_to_dome = self.compute_distance_to_dome(telescope_elevation)
-
         scaled_abs_azimuth_difference = (
             abs_azimuth_difference
             * math.cos(math.radians(telescope_elevation))
@@ -286,7 +286,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         return TelescopeVignetted.FULLY
 
     def compute_vignetted_by_shutter(
-        self, dome_dropout_door_state, dome_main_door_state, telescope_elevation
+        self, *, dome_dropout_door_state, dome_main_door_state, telescope_elevation
     ):
         """Compute the ``shutter`` field of the telescopeVignetted event.
 
