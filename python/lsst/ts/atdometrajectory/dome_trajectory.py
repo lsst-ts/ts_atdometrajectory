@@ -279,9 +279,9 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
             * self.distance_to_dome_at_horizon
             / distance_to_dome
         )
-        if scaled_abs_azimuth_difference < self.config.azimuth_vignette_min:
+        if scaled_abs_azimuth_difference < self.config.azimuth_vignette_partial:
             return TelescopeVignetted.NO
-        elif scaled_abs_azimuth_difference < self.config.azimuth_vignette_max:
+        elif scaled_abs_azimuth_difference < self.config.azimuth_vignette_full:
             return TelescopeVignetted.PARTIALLY
         return TelescopeVignetted.FULLY
 
@@ -324,9 +324,9 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
             # so vignetting depends on telescope elevation.
             if telescope_elevation is None:
                 return TelescopeVignetted.UNKNOWN
-            elif telescope_elevation > self.config.dropout_door_vignette_min:
+            elif telescope_elevation > self.config.dropout_door_vignette_partial:
                 return TelescopeVignetted.NO
-            elif telescope_elevation > self.config.dropout_door_vignette_max:
+            elif telescope_elevation > self.config.dropout_door_vignette_full:
                 return TelescopeVignetted.PARTIALLY
             return TelescopeVignetted.FULLY
         return TelescopeVignetted.UNKNOWN

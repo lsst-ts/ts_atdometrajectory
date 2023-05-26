@@ -134,10 +134,12 @@ class ATDomeTrajectoryTestCase(
         async with self.make_csc(initial_state=salobj.State.ENABLED):
             angle_margin = 0.01
             await self.assert_next_sample(self.remote.evt_followingMode, enabled=False)
-            azimuth_vignette_min = self.csc.config.azimuth_vignette_min
-            azimuth_vignette_max = self.csc.config.azimuth_vignette_max
-            dropout_door_vignette_min = self.csc.config.dropout_door_vignette_min
-            dropout_door_vignette_max = self.csc.config.dropout_door_vignette_max
+            azimuth_vignette_partial = self.csc.config.azimuth_vignette_partial
+            azimuth_vignette_full = self.csc.config.azimuth_vignette_full
+            dropout_door_vignette_partial = (
+                self.csc.config.dropout_door_vignette_partial
+            )
+            dropout_door_vignette_full = self.csc.config.dropout_door_vignette_full
 
             await self.assert_next_sample(
                 topic=self.remote.evt_telescopeVignetted,
@@ -165,7 +167,7 @@ class ATDomeTrajectoryTestCase(
             )
 
             # Move the dome far enough negative to vignette partially
-            dome_az = 0 - azimuth_vignette_min - angle_margin
+            dome_az = 0 - azimuth_vignette_partial - angle_margin
             await self.dome_remote.cmd_moveAzimuth.set_start(azimuth=dome_az)
             await self.assert_next_sample(
                 topic=self.remote.evt_telescopeVignetted,
@@ -177,7 +179,7 @@ class ATDomeTrajectoryTestCase(
             # Change telescope azimuth far enough away on the other side
             # of zero to fully vignette
             await self.publish_telescope_actual_position(
-                azimuth=dome_az + azimuth_vignette_max + angle_margin
+                azimuth=dome_az + azimuth_vignette_full + angle_margin
             )
             await self.assert_next_sample(
                 topic=self.remote.evt_telescopeVignetted,
@@ -260,7 +262,7 @@ class ATDomeTrajectoryTestCase(
             # With only the dropout door closed, try lower elevations
             # for partial and full vignetting.
             await self.publish_telescope_actual_position(
-                elevation=dropout_door_vignette_min - angle_margin
+                elevation=dropout_door_vignette_partial - angle_margin
             )
             await self.assert_next_sample(
                 topic=self.remote.evt_telescopeVignetted,
@@ -269,7 +271,7 @@ class ATDomeTrajectoryTestCase(
                 vignetted=TelescopeVignetted.PARTIALLY,
             )
             await self.publish_telescope_actual_position(
-                elevation=dropout_door_vignette_max - angle_margin
+                elevation=dropout_door_vignette_full - angle_margin
             )
             await self.assert_next_sample(
                 topic=self.remote.evt_telescopeVignetted,
@@ -369,9 +371,9 @@ class ATDomeTrajectoryTestCase(
 
             desired_config_pkg_name = "ts_config_attcs"
             desired_config_env_name = desired_config_pkg_name.upper() + "_DIR"
-            desird_config_pkg_dir = os.environ[desired_config_env_name]
+            desired_config_pkg_dir = os.environ[desired_config_env_name]
             desired_config_dir = (
-                pathlib.Path(desird_config_pkg_dir) / "ATDomeTrajectory/v3"
+                pathlib.Path(desired_config_pkg_dir) / "ATDomeTrajectory/v4"
             )
             assert self.csc.get_config_pkg() == desired_config_pkg_name
             assert self.csc.config_dir == desired_config_dir
