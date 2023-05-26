@@ -176,9 +176,8 @@ class ATDomeTrajectoryTestCase(
 
             # Change telescope azimuth far enough away on the other side
             # of zero to fully vignette
-            telescope_az = dome_az + azimuth_vignette_max + angle_margin
             await self.publish_telescope_actual_position(
-                azimuth=telescope_az, elevation=0
+                azimuth=dome_az + azimuth_vignette_max + angle_margin
             )
             await self.assert_next_sample(
                 topic=self.remote.evt_telescopeVignetted,
@@ -189,9 +188,7 @@ class ATDomeTrajectoryTestCase(
 
             # Increase telescope elevation high enough to partial vignetting.
             # Rather than be fancy about the math, just use a plausible value.
-            await self.publish_telescope_actual_position(
-                azimuth=telescope_az, elevation=45
-            )
+            await self.publish_telescope_actual_position(elevation=45)
             await self.assert_next_sample(
                 topic=self.remote.evt_telescopeVignetted,
                 azimuth=TelescopeVignetted.PARTIALLY,
@@ -201,9 +198,7 @@ class ATDomeTrajectoryTestCase(
 
             # Increase telescope elevation high enough to full vignetting.
             # Rather than be fancy about the math, just use a plausible value.
-            await self.publish_telescope_actual_position(
-                azimuth=telescope_az, elevation=90
-            )
+            await self.publish_telescope_actual_position(elevation=90)
             await self.assert_next_sample(
                 topic=self.remote.evt_telescopeVignetted,
                 azimuth=TelescopeVignetted.NO,
@@ -214,7 +209,7 @@ class ATDomeTrajectoryTestCase(
             # Slew to azimuth = dome_az (so we don't have to worry about
             # vignetting due to azimuth), then test shutter door state
             # at various elevations, starting with 90.
-            await self.publish_telescope_actual_position(azimuth=dome_az, elevation=90)
+            await self.publish_telescope_actual_position(azimuth=dome_az)
 
             await self.dome_csc.evt_dropoutDoorState.set_write(
                 state=ShutterDoorState.CLOSING
@@ -265,7 +260,7 @@ class ATDomeTrajectoryTestCase(
             # With only the dropout door closed, try lower elevations
             # for partial and full vignetting.
             await self.publish_telescope_actual_position(
-                azimuth=dome_az, elevation=dropout_door_vignette_min - angle_margin
+                elevation=dropout_door_vignette_min - angle_margin
             )
             await self.assert_next_sample(
                 topic=self.remote.evt_telescopeVignetted,
@@ -274,7 +269,7 @@ class ATDomeTrajectoryTestCase(
                 vignetted=TelescopeVignetted.PARTIALLY,
             )
             await self.publish_telescope_actual_position(
-                azimuth=dome_az, elevation=dropout_door_vignette_max - angle_margin
+                elevation=dropout_door_vignette_max - angle_margin
             )
             await self.assert_next_sample(
                 topic=self.remote.evt_telescopeVignetted,
@@ -331,24 +326,38 @@ class ATDomeTrajectoryTestCase(
                         )
                         last_vignetted = desired_vignetted
 
-    async def publish_telescope_actual_position(self, azimuth, elevation):
-        """Publish ATMCS mount_AzEl_Encoders data.
+    async def publish_telescope_actual_position(self, azimuth=None, elevation=None):
+        """Publish ATMCS actual position.
+
+        Publish mount_AzEl_Encoders with azimuthCalculatedAngle and/or
+        elevationCalculatedAngle changed as specified.
+        If the new value is not None then the field is set to an array of 0s,
+        except the final value, which is as specified.
+        This is done in order to test the fact that ATDomeTrajectory
+        only reads the final array element of these two fields.
 
         Parameters
         ----------
-        azimuth : `float`
-            Telescope actual azimuth (deg)
-        elevation : `float`
+        azimuth : `float` | `None`
+            Telescope actual azimuth (deg).
+            If None, do not change the current value.
+        elevation : `float` | `None`
             Telescope actual elevation (deg)
+            If None, do not change the current value.
         """
-        blank_data = self.atmcs_controller.tel_mount_AzEl_Encoders.DataType()
-        # Write all 0s except the final value, to test that
-        # ATDomeTrajectory only pays attention to the final value.
-        azimuth_arr = blank_data.azimuthCalculatedAngle[:-1] + [azimuth]
-        elevation_arr = blank_data.elevationCalculatedAngle[:-1] + [elevation]
-        await self.atmcs_controller.tel_mount_AzEl_Encoders.set_write(
-            azimuthCalculatedAngle=azimuth_arr, elevationCalculatedAngle=elevation_arr
-        )
+        kwargs = dict()
+        for value, fieldname in (
+            (azimuth, "azimuthCalculatedAngle"),
+            (elevation, "elevationCalculatedAngle"),
+        ):
+            if value is None:
+                continue
+            arr_len = len(
+                getattr(self.atmcs_controller.tel_mount_AzEl_Encoders.data, fieldname)
+            )
+            arr = [0] * (arr_len - 1) + [value]
+            kwargs[fieldname] = arr
+        await self.atmcs_controller.tel_mount_AzEl_Encoders.set_write(**kwargs)
 
     async def test_default_config_dir(self):
         async with self.make_csc(initial_state=salobj.State.STANDBY, config_dir=None):
