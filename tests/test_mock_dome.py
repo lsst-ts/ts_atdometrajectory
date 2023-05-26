@@ -90,7 +90,3 @@ class MockDomeTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase)
                         utils.assert_angles_almost_equal(position.azimuthPosition, az)
                         break
                     await asyncio.sleep(self.csc.telemetry_interval)
-
-
-if __name__ == "__main__":
-    unittest.main()

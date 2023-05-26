@@ -522,7 +522,3 @@ class ATDomeTrajectoryTestCase(
             )
             await self.assert_dome_az(azimuth, move_expected=False)
             self.assert_telescope_target(elevation=elevation, azimuth=target_azimuth)
-
-
-if __name__ == "__main__":
-    unittest.main()
