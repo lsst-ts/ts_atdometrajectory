@@ -45,10 +45,10 @@ class ValidationTestCase(unittest.TestCase):
         config = self.init_config.copy()
         assert config["algorithm_name"] == "simple"
         assert config["simple"] == dict(max_delta_azimuth=5)
-        assert config["azimuth_vignette_min"] == 10.1
-        assert config["azimuth_vignette_max"] == 25.1
-        assert config["dropout_door_vignette_min"] == 27.1
-        assert config["dropout_door_vignette_max"] == 15.1
+        assert config["azimuth_vignette_partial"] == 10.1
+        assert config["azimuth_vignette_full"] == 25.1
+        assert config["dropout_door_vignette_partial"] == 27.1
+        assert config["dropout_door_vignette_full"] == 15.1
         assert config["dome_inner_radius"] == 5000
         assert config["telescope_height_offset"] == 1000
 
@@ -58,10 +58,10 @@ class ValidationTestCase(unittest.TestCase):
         self.validator.validate(config)
         assert config["algorithm_name"] == "simple"
         assert config["simple"] == dict(max_delta_azimuth=7.1)
-        assert config["azimuth_vignette_min"] == 11.2
-        assert config["azimuth_vignette_max"] == 26.2
-        assert config["dropout_door_vignette_min"] == 28.2
-        assert config["dropout_door_vignette_max"] == 16.2
+        assert config["azimuth_vignette_partial"] == 11.2
+        assert config["azimuth_vignette_full"] == 26.2
+        assert config["dropout_door_vignette_partial"] == 28.2
+        assert config["dropout_door_vignette_full"] == 16.2
         assert config["dome_inner_radius"] == 5050.5
         assert config["telescope_height_offset"] == 1010.1
 
@@ -87,7 +87,3 @@ class ValidationTestCase(unittest.TestCase):
                 del bad_config[field]
                 with pytest.raises(jsonschema.exceptions.ValidationError):
                     self.validator.validate(bad_config)
-
-
-if __name__ == "__main__":
-    unittest.main()

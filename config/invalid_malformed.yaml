@@ -1,4 +1,0 @@
-# this config file exists purely for unit testing
-algorithm_name = "simple"
-algorithm_config:
-    max_delta_azimuth: 5  # degrees
