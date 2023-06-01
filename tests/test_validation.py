@@ -25,9 +25,7 @@ import unittest
 import jsonschema
 import pytest
 import yaml
-
-from lsst.ts import salobj
-from lsst.ts import atdometrajectory
+from lsst.ts import atdometrajectory, salobj
 
 TEST_CONFIG_DIR = pathlib.Path(__file__).parent / "data" / "config"
 
@@ -45,29 +43,42 @@ class ValidationTestCase(unittest.TestCase):
 
     def test_good_files(self):
         config = self.init_config.copy()
-        self.assertEqual(config["algorithm_name"], "simple")
-        self.assertEqual(config["simple"], dict(max_delta_azimuth=5))
+        assert config["algorithm_name"] == "simple"
+        assert config["simple"] == dict(max_delta_azimuth=5)
+        assert config["azimuth_vignette_partial"] == 10.1
+        assert config["azimuth_vignette_full"] == 25.1
+        assert config["dropout_door_vignette_partial"] == 27.1
+        assert config["dropout_door_vignette_full"] == 15.1
+        assert config["dome_inner_radius"] == 5000
+        assert config["telescope_height_offset"] == 1000
 
         with open(TEST_CONFIG_DIR / "valid.yaml", "r") as f:
             raw_config = f.read()
         config.update(yaml.safe_load(raw_config))
         self.validator.validate(config)
-        self.assertEqual(config["algorithm_name"], "simple")
-        self.assertEqual(config["simple"], dict(max_delta_azimuth=7.1))
+        assert config["algorithm_name"] == "simple"
+        assert config["simple"] == dict(max_delta_azimuth=7.1)
+        assert config["azimuth_vignette_partial"] == 11.2
+        assert config["azimuth_vignette_full"] == 26.2
+        assert config["dropout_door_vignette_partial"] == 28.2
+        assert config["dropout_door_vignette_full"] == 16.2
+        assert config["dome_inner_radius"] == 5050.5
+        assert config["telescope_height_offset"] == 1010.1
 
     def test_bad_files(self):
         for path in TEST_CONFIG_DIR.glob("invalid*.yaml"):
-            config = self.init_config.copy()
-            with open(path, "r") as f:
-                raw_config = f.read()
-            bad_config = yaml.safe_load(raw_config)
-            if path.name == "invalid_malformed.yaml":
-                assert not isinstance(bad_config, dict)
-            else:
-                # File is valid but the config is not
-                config.update(bad_config)
-                with pytest.raises(jsonschema.exceptions.ValidationError):
-                    self.validator.validate(config)
+            with self.subTest(path=path):
+                config = self.init_config.copy()
+                with open(path, "r") as f:
+                    raw_config = f.read()
+                bad_config = yaml.safe_load(raw_config)
+                if path.name == "invalid_malformed.yaml":
+                    assert not isinstance(bad_config, dict)
+                else:
+                    # File is valid but the config is not
+                    config.update(bad_config)
+                    with pytest.raises(jsonschema.exceptions.ValidationError):
+                        self.validator.validate(config)
 
     def test_missing_fields(self):
         for field in self.init_config:
@@ -76,7 +87,3 @@ class ValidationTestCase(unittest.TestCase):
                 del bad_config[field]
                 with pytest.raises(jsonschema.exceptions.ValidationError):
                     self.validator.validate(bad_config)
-
-
-if __name__ == "__main__":
-    unittest.main()

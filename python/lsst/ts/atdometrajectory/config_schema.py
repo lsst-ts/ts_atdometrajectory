@@ -28,7 +28,7 @@ CONFIG_SCHEMA = yaml.safe_load(
     """$schema: http://json-schema.org/draft-07/schema#
 $id: https://github.com/lsst-ts/ts_atdometrajectory/blob/main/python/lsst/ts/atdometrajectory/config_schema.py
 # title must end with one or more spaces followed by the schema version, which must begin with "v"
-title: ATDomeTrajectory v2
+title: ATDomeTrajectory v4
 description: Schema for ATDomeTrajectory configuration files
 type: object
 properties:
@@ -48,9 +48,49 @@ properties:
     required:
     - max_delta_azimuth
     additionalProperties: false
+  azimuth_vignette_partial:
+    description: >-
+      Azimuth angle difference (deg) above which the telescope is partially vignetted
+      when the telescope is at elevation 0 (horizon). This is approximately 10°.
+    type: number
+  azimuth_vignette_full:
+    description: >-
+      Azimuth angle difference (deg) above which the telescope is fully vignetted
+      when the telescope is at elevation 0 (horizon). This is approximately 25°
+    type: number
+  dropout_door_vignette_partial:
+    description: >-
+      Elevation angle (deg) below which the telescope is partially vignetted
+      by the dropout door, if that is closed and the main door is open.
+      This is approximately 27°.
+    type: number
+  dropout_door_vignette_full:
+    description: >-
+      Elevation angle (deg) below which the telescope is fully vignetted
+      by the dropout door, if that is closed and the main door is open.
+      This is approximately 12°.
+    type: number
+  dome_inner_radius:
+    description: >-
+      Distance (mm) from the center of the telescope (intersection of elevation and azimuth axes)
+      to the inner edge of the shutter (with the shutter doors both open).
+      This is approximately the inner radius of the dome, which is 4648 mm (183").
+      Used to compute vignetting by azimuth mismatch when the telescope elevation is non-zero.
+  telescope_height_offset:
+    description: >-
+      Height (mm) of the center of the telescope (intersection of elevation and azimuth axes)
+      above the center of radius of the dome. This is approximately 940 mm (37").
+      Used to compute vignetting by azimuth mismatch when the telescope elevation is non-zero.
+    type: number
 required:
 - algorithm_name
 - simple
+- azimuth_vignette_partial
+- azimuth_vignette_full
+- dropout_door_vignette_partial
+- dropout_door_vignette_full
+- dome_inner_radius
+- telescope_height_offset
 additionalProperties: false
 """
 )

@@ -26,12 +26,11 @@ import os
 import pathlib
 import unittest
 
+import pytest
 import yaml
-
-from lsst.ts import atdometrajectory
-from lsst.ts import salobj
-from lsst.ts import utils
-from lsst.ts.idl.enums.ATDome import AzimuthCommandedState
+from lsst.ts import atdometrajectory, salobj, utils
+from lsst.ts.idl.enums.ATDome import AzimuthCommandedState, ShutterDoorState
+from lsst.ts.idl.enums.ATDomeTrajectory import TelescopeVignetted
 
 NODATA_TIMEOUT = 0.5
 STD_TIMEOUT = 5  # standard command timeout (sec)
@@ -48,7 +47,7 @@ class ATDomeTrajectoryTestCase(
     async def make_csc(
         self,
         initial_state,
-        config_dir=None,
+        config_dir=TEST_CONFIG_DIR,
         override="",
         simulation_mode=0,
         log_level=None,
@@ -66,10 +65,13 @@ class ATDomeTrajectoryTestCase(
         ) as self.dome_remote, salobj.Controller(
             "ATMCS"
         ) as self.atmcs_controller:
+            await self.atmcs_controller.evt_summaryState.set_write(
+                summaryState=salobj.State.ENABLED
+            )
             yield
 
     def basic_make_csc(self, initial_state, config_dir, simulation_mode, override):
-        self.assertEqual(simulation_mode, 0)
+        assert simulation_mode == 0
         return atdometrajectory.ATDomeTrajectory(
             initial_state=initial_state,
             config_dir=config_dir,
@@ -128,8 +130,239 @@ class ATDomeTrajectoryTestCase(
             )
             await self.assert_dome_az(azimuth=None, move_expected=False)
 
+    async def test_telescope_vignetted(self):
+        async with self.make_csc(initial_state=salobj.State.ENABLED):
+            angle_margin = 0.01
+            await self.assert_next_sample(self.remote.evt_followingMode, enabled=False)
+            azimuth_vignette_partial = self.csc.config.azimuth_vignette_partial
+            azimuth_vignette_full = self.csc.config.azimuth_vignette_full
+            dropout_door_vignette_partial = (
+                self.csc.config.dropout_door_vignette_partial
+            )
+            dropout_door_vignette_full = self.csc.config.dropout_door_vignette_full
+
+            await self.assert_next_sample(
+                topic=self.remote.evt_telescopeVignetted,
+                azimuth=TelescopeVignetted.UNKNOWN,
+                shutter=TelescopeVignetted.UNKNOWN,
+                vignetted=TelescopeVignetted.UNKNOWN,
+            )
+
+            assert self.dome_csc.curr_az == 0
+            # Wait for ATDomeTrajectory to notice that both shutter doors
+            # are fully open.
+            while True:
+                data = await self.assert_next_sample(
+                    topic=self.remote.evt_telescopeVignetted,
+                    azimuth=TelescopeVignetted.UNKNOWN,
+                )
+                if data.shutter == TelescopeVignetted.NO:
+                    break
+            await self.publish_telescope_actual_position(azimuth=0, elevation=0)
+            await self.assert_next_sample(
+                topic=self.remote.evt_telescopeVignetted,
+                azimuth=TelescopeVignetted.NO,
+                shutter=TelescopeVignetted.NO,
+                vignetted=TelescopeVignetted.NO,
+            )
+
+            # Move the dome far enough negative to vignette partially
+            dome_az = 0 - azimuth_vignette_partial - angle_margin
+            await self.dome_remote.cmd_moveAzimuth.set_start(azimuth=dome_az)
+            await self.assert_next_sample(
+                topic=self.remote.evt_telescopeVignetted,
+                azimuth=TelescopeVignetted.PARTIALLY,
+                shutter=TelescopeVignetted.NO,
+                vignetted=TelescopeVignetted.PARTIALLY,
+            )
+
+            # Change telescope azimuth far enough away on the other side
+            # of zero to fully vignette
+            await self.publish_telescope_actual_position(
+                azimuth=dome_az + azimuth_vignette_full + angle_margin
+            )
+            await self.assert_next_sample(
+                topic=self.remote.evt_telescopeVignetted,
+                azimuth=TelescopeVignetted.FULLY,
+                shutter=TelescopeVignetted.NO,
+                vignetted=TelescopeVignetted.FULLY,
+            )
+
+            # Increase telescope elevation high enough to partial vignetting.
+            # Rather than be fancy about the math, just use a plausible value.
+            await self.publish_telescope_actual_position(elevation=45)
+            await self.assert_next_sample(
+                topic=self.remote.evt_telescopeVignetted,
+                azimuth=TelescopeVignetted.PARTIALLY,
+                shutter=TelescopeVignetted.NO,
+                vignetted=TelescopeVignetted.PARTIALLY,
+            )
+
+            # Increase telescope elevation high enough to full vignetting.
+            # Rather than be fancy about the math, just use a plausible value.
+            await self.publish_telescope_actual_position(elevation=90)
+            await self.assert_next_sample(
+                topic=self.remote.evt_telescopeVignetted,
+                azimuth=TelescopeVignetted.NO,
+                shutter=TelescopeVignetted.NO,
+                vignetted=TelescopeVignetted.NO,
+            )
+
+            # Slew to azimuth = dome_az (so we don't have to worry about
+            # vignetting due to azimuth), then test shutter door state
+            # at various elevations, starting with 90.
+            await self.publish_telescope_actual_position(azimuth=dome_az)
+
+            await self.dome_csc.evt_dropoutDoorState.set_write(
+                state=ShutterDoorState.CLOSING
+            )
+            await self.assert_next_sample(
+                topic=self.remote.evt_telescopeVignetted,
+                azimuth=TelescopeVignetted.NO,
+                shutter=TelescopeVignetted.UNKNOWN,
+                vignetted=TelescopeVignetted.UNKNOWN,
+            )
+            await self.dome_csc.evt_dropoutDoorState.set_write(
+                state=ShutterDoorState.CLOSED
+            )
+            await self.assert_next_sample(
+                topic=self.remote.evt_telescopeVignetted,
+                azimuth=TelescopeVignetted.NO,
+                shutter=TelescopeVignetted.NO,
+                vignetted=TelescopeVignetted.NO,
+            )
+            await self.dome_csc.evt_mainDoorState.set_write(
+                state=ShutterDoorState.CLOSING
+            )
+            await self.assert_next_sample(
+                topic=self.remote.evt_telescopeVignetted,
+                azimuth=TelescopeVignetted.NO,
+                shutter=TelescopeVignetted.UNKNOWN,
+                vignetted=TelescopeVignetted.UNKNOWN,
+            )
+            await self.dome_csc.evt_mainDoorState.set_write(
+                state=ShutterDoorState.CLOSED
+            )
+            await self.assert_next_sample(
+                topic=self.remote.evt_telescopeVignetted,
+                azimuth=TelescopeVignetted.NO,
+                shutter=TelescopeVignetted.FULLY,
+                vignetted=TelescopeVignetted.FULLY,
+            )
+            await self.dome_csc.evt_mainDoorState.set_write(
+                state=ShutterDoorState.OPENED
+            )
+            await self.assert_next_sample(
+                topic=self.remote.evt_telescopeVignetted,
+                azimuth=TelescopeVignetted.NO,
+                shutter=TelescopeVignetted.NO,
+                vignetted=TelescopeVignetted.NO,
+            )
+
+            # With only the dropout door closed, try lower elevations
+            # for partial and full vignetting.
+            await self.publish_telescope_actual_position(
+                elevation=dropout_door_vignette_partial - angle_margin
+            )
+            await self.assert_next_sample(
+                topic=self.remote.evt_telescopeVignetted,
+                azimuth=TelescopeVignetted.NO,
+                shutter=TelescopeVignetted.PARTIALLY,
+                vignetted=TelescopeVignetted.PARTIALLY,
+            )
+            await self.publish_telescope_actual_position(
+                elevation=dropout_door_vignette_full - angle_margin
+            )
+            await self.assert_next_sample(
+                topic=self.remote.evt_telescopeVignetted,
+                azimuth=TelescopeVignetted.NO,
+                shutter=TelescopeVignetted.FULLY,
+                vignetted=TelescopeVignetted.FULLY,
+            )
+
+            await self.dome_csc.evt_dropoutDoorState.set_write(
+                state=ShutterDoorState.OPENED
+            )
+            await self.assert_next_sample(
+                topic=self.remote.evt_telescopeVignetted,
+                azimuth=TelescopeVignetted.NO,
+                shutter=TelescopeVignetted.NO,
+                vignetted=TelescopeVignetted.NO,
+            )
+
+            last_vignetted = TelescopeVignetted.NO
+            for dome_summary_state, telescope_summary_state in zip(
+                salobj.State, salobj.State
+            ):
+                with self.subTest(
+                    dome_summary_state=dome_summary_state,
+                    telescope_summary_state=telescope_summary_state,
+                ):
+                    # This is a bit skanky, because the mock dome CSC should
+                    # report its own summary state. But the CSC cannot tell
+                    # this is happening, and it has no reason to report
+                    # a new summary state itself. So it works fine.
+                    await self.dome_csc.evt_summaryState.set_write(
+                        summaryState=dome_summary_state
+                    )
+                    await self.atmcs_controller.evt_summaryState.set_write(
+                        summaryState=telescope_summary_state
+                    )
+                    if dome_summary_state in {
+                        salobj.State.DISABLED,
+                        salobj.State.ENABLED,
+                    } and telescope_summary_state in {
+                        salobj.State.DISABLED,
+                        salobj.State.ENABLED,
+                    }:
+                        desired_vignetted = TelescopeVignetted.NO
+                    else:
+                        desired_vignetted = TelescopeVignetted.UNKNOWN
+
+                    if desired_vignetted != last_vignetted:
+                        await self.assert_next_sample(
+                            topic=self.remote.evt_telescopeVignetted,
+                            azimuth=desired_vignetted,
+                            shutter=desired_vignetted,
+                            vignetted=desired_vignetted,
+                        )
+                        last_vignetted = desired_vignetted
+
+    async def publish_telescope_actual_position(self, azimuth=None, elevation=None):
+        """Publish ATMCS actual position.
+
+        Publish mount_AzEl_Encoders with azimuthCalculatedAngle and/or
+        elevationCalculatedAngle changed as specified.
+        If the new value is not None then the field is set to an array of 0s,
+        except the final value, which is as specified.
+        This is done in order to test the fact that ATDomeTrajectory
+        only reads the final array element of these two fields.
+
+        Parameters
+        ----------
+        azimuth : `float` | `None`
+            Telescope actual azimuth (deg).
+            If None, do not change the current value.
+        elevation : `float` | `None`
+            Telescope actual elevation (deg)
+            If None, do not change the current value.
+        """
+        kwargs = dict()
+        for value, fieldname in (
+            (azimuth, "azimuthCalculatedAngle"),
+            (elevation, "elevationCalculatedAngle"),
+        ):
+            if value is None:
+                continue
+            arr_len = len(
+                getattr(self.atmcs_controller.tel_mount_AzEl_Encoders.data, fieldname)
+            )
+            arr = [0] * (arr_len - 1) + [value]
+            kwargs[fieldname] = arr
+        await self.atmcs_controller.tel_mount_AzEl_Encoders.set_write(**kwargs)
+
     async def test_default_config_dir(self):
-        async with self.make_csc(initial_state=salobj.State.STANDBY):
+        async with self.make_csc(initial_state=salobj.State.STANDBY, config_dir=None):
             await self.assert_next_sample(
                 self.remote.evt_softwareVersions,
                 cscVersion=atdometrajectory.__version__,
@@ -138,19 +371,17 @@ class ATDomeTrajectoryTestCase(
 
             desired_config_pkg_name = "ts_config_attcs"
             desired_config_env_name = desired_config_pkg_name.upper() + "_DIR"
-            desird_config_pkg_dir = os.environ[desired_config_env_name]
+            desired_config_pkg_dir = os.environ[desired_config_env_name]
             desired_config_dir = (
-                pathlib.Path(desird_config_pkg_dir) / "ATDomeTrajectory/v2"
+                pathlib.Path(desired_config_pkg_dir) / "ATDomeTrajectory/v4"
             )
-            self.assertEqual(self.csc.get_config_pkg(), desired_config_pkg_name)
-            self.assertEqual(self.csc.config_dir, desired_config_dir)
+            assert self.csc.get_config_pkg() == desired_config_pkg_name
+            assert self.csc.config_dir == desired_config_dir
             await self.csc.do_exitControl(data=None)
             await asyncio.wait_for(self.csc.done_task, timeout=5)
 
     async def test_configuration(self):
-        async with self.make_csc(
-            initial_state=salobj.State.STANDBY, config_dir=TEST_CONFIG_DIR
-        ):
+        async with self.make_csc(initial_state=salobj.State.STANDBY):
             await self.assert_next_summary_state(salobj.State.STANDBY)
 
             for bad_config_name in (
@@ -173,8 +404,8 @@ class ATDomeTrajectoryTestCase(
                 self.remote.evt_algorithm, algorithmName="simple"
             )
             # max_delta_azimuth=7.1 is hard coded in the yaml file
-            self.assertEqual(
-                yaml.safe_load(settings.algorithmConfig), dict(max_delta_azimuth=7.1)
+            assert yaml.safe_load(settings.algorithmConfig) == dict(
+                max_delta_azimuth=7.1
             )
 
     async def assert_dome_az(self, azimuth, move_expected):
@@ -202,7 +433,7 @@ class ATDomeTrajectoryTestCase(
             )
             utils.assert_angles_almost_equal(az_cmd_state.azimuth, azimuth)
         else:
-            with self.assertRaises(asyncio.TimeoutError):
+            with pytest.raises(asyncio.TimeoutError):
                 await self.dome_remote.evt_azimuthCommandedState.next(
                     flush=False, timeout=NODATA_TIMEOUT
                 )
@@ -291,7 +522,3 @@ class ATDomeTrajectoryTestCase(
             )
             await self.assert_dome_az(azimuth, move_expected=False)
             self.assert_telescope_target(elevation=elevation, azimuth=target_azimuth)
-
-
-if __name__ == "__main__":
-    unittest.main()

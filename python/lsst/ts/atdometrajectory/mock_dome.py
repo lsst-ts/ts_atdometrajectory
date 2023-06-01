@@ -23,8 +23,8 @@ __all__ = ["MockDome"]
 import asyncio
 import math
 
-from lsst.ts import salobj
-from lsst.ts import utils
+from lsst.ts import salobj, utils
+from lsst.ts.idl.enums.ATDome import AzimuthCommandedState, ShutterDoorState
 
 
 class MockDome(salobj.BaseCsc):
@@ -63,8 +63,12 @@ class MockDome(salobj.BaseCsc):
     async def start(self):
         await super().start()
         await self.evt_azimuthCommandedState.set_write(
-            commandedState=1, azimuth=math.nan, force_output=True  # 1 = Unknown
+            commandedState=AzimuthCommandedState.UNKNOWN,
+            azimuth=math.nan,
+            force_output=True,
         )
+        await self.evt_dropoutDoorState.set_write(state=ShutterDoorState.OPENED)
+        await self.evt_mainDoorState.set_write(state=ShutterDoorState.OPENED)
 
     async def close_tasks(self):
         self.move_azimuth_task.cancel()

@@ -6,6 +6,39 @@
 Version History
 ###############
 
+v1.11.0
+-------
+
+* `CONFIG_SCHEMA`: update to v4.
+  Rename x_vignetted_min to x_vignetted_partial and x_vignetted_max to x_vignetted_full.
+  This enhances clarity and matches MTDomeTrajectory, where "min" and "max" did not work for all vignetting parameters.
+* `ATDomeTrajectory`: fix a misfeature in the compute_vignetted_by_azimuth method: it was checking the ATMCS mount_AzEl_Encoders telemetry unnecessarily.
+* Unit tests: remove ``if __name__ == "__main__"`` blocks, so tests must be run with pytest.
+* Use ts_pre_commit_config.
+* Remove scons support.
+
+Requirements:
+
+* ts_salobj 7.2
+* ts_idl 2
+* ts_utils 1
+* IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 16
+
+v1.10.0
+-------
+
+* `ATDomeTrajectory`: publish the ``telescopeVignetted`` event.
+  This requires ts_xml 16 and adds items to the config schema version, bumping it to version v3.
+* ``Jenkinsfile`` CI: do not run as root.
+* pre-commit: update black to 23.1.0 and pre-commit-hooks to v4.4.0 and add isort.
+
+Requirements:
+
+* ts_salobj 7.2
+* ts_idl 2
+* ts_utils 1
+* IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 16
+
 v1.9.0
 ------
 

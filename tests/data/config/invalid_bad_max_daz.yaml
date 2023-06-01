@@ -1,3 +1,2 @@
-algorithm_name: "simple"
 simple:
   max_delta_azimuth: "invalid value"

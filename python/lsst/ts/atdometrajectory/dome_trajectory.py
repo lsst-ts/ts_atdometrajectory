@@ -21,20 +21,23 @@
 __all__ = ["ATDomeTrajectory", "run_atdometrajectory"]
 
 import asyncio
+import math
 
 import yaml
+from lsst.ts import salobj, simactuators, utils
+from lsst.ts.idl.enums.ATDome import AzimuthCommandedState, ShutterDoorState
+from lsst.ts.idl.enums.ATDomeTrajectory import TelescopeVignetted
 
-from lsst.ts import salobj
-from lsst.ts import simactuators
-from lsst.ts import utils
-from lsst.ts.idl.enums.ATDome import AzimuthCommandedState
 from . import __version__
+from .base_algorithm import AlgorithmRegistry
 from .config_schema import CONFIG_SCHEMA
 from .elevation_azimuth import ElevationAzimuth
-from .base_algorithm import AlgorithmRegistry
 
-# Timeout for commands that should be executed quickly
+# Timeout for commands that should be executed quickly.
 STD_TIMEOUT = 5
+
+# Time (sec) between polling for vignetting.
+VIGNETTING_MONITOR_INTERVAL = 0.1
 
 
 class ATDomeTrajectory(salobj.ConfigurableCsc):
@@ -100,16 +103,28 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         )
 
         self.atmcs_remote = salobj.Remote(
-            domain=self.domain, name="ATMCS", include=["target"]
+            domain=self.domain,
+            name="ATMCS",
+            include=["mount_AzEl_Encoders", "summaryState", "target"],
         )
         self.dome_remote = salobj.Remote(
-            domain=self.domain, name="ATDome", include=["azimuthCommandedState"]
+            domain=self.domain,
+            name="ATDome",
+            include=[
+                "azimuthCommandedState",
+                "dropoutDoorState",
+                "mainDoorState",
+                "position",
+                "summaryState",
+            ],
         )
 
         self.atmcs_remote.evt_target.callback = self.atmcs_target_callback
         self.dome_remote.evt_azimuthCommandedState.callback = (
             self.atdome_commanded_azimuth_state_callback
         )
+        self.report_vignetted_task = utils.make_done_future()
+        self.distance_to_dome_at_horizon = None
 
     @staticmethod
     def get_config_pkg():
@@ -139,10 +154,22 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
             raise salobj.ExpectedError(f"Unknown algorithm {algorithm_name}")
         algorithm_config = getattr(config, config.algorithm_name)
         self.algorithm = AlgorithmRegistry[config.algorithm_name](**algorithm_config)
+        self.config = config
         await self.evt_algorithm.set_write(
             algorithmName=config.algorithm_name,
             algorithmConfig=yaml.dump(algorithm_config),
         )
+        self.distance_to_dome_at_horizon = self.compute_distance_to_dome(0)
+
+    async def close_tasks(self):
+        self.move_dome_azimuth_task.cancel()
+        self.report_vignetted_task.cancel()
+        await self.evt_telescopeVignetted.set_write(
+            vignetted=TelescopeVignetted.UNKNOWN,
+            azimuth=TelescopeVignetted.UNKNOWN,
+            shutter=TelescopeVignetted.UNKNOWN,
+        )
+        await super().close_tasks()
 
     async def atmcs_target_callback(self, target):
         """Callback for ATMCS target event.
@@ -179,6 +206,144 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
             self.log.info(f"dome_target_azimuth={self.dome_target_azimuth}")
         await self.follow_target()
 
+    def compute_distance_to_dome(self, elevation):
+        """Compute distance (mm) from telescope center to inner edge of dome
+        slit.
+
+        Parameters
+        ----------
+        elevation : `float`
+          Telescope elevation (deg).
+
+        Returns
+        -------
+        distance_to_dome : `float`
+            Distance to dome at the specified telewscope elevation (mm).
+        """
+        # The equations break down at the zenith, but we can get close enough
+        # by stopping just short of it.
+        elevation = min(elevation, 89.999)
+
+        # Use the standard triangle equations:
+        #
+        # c = a * sin(C) / sin(A)
+        # B = arcsin(b/a sin(A))
+        # C = 180 - A - B
+        #
+        # Where the triangle has these quantities:
+        #
+        # * angle_a: elevation + 90
+        # * side_a: dome inner radius
+        # * side_b: telescope height offset
+        # * side_c: distance from telescope center to dome (value to compute)
+        side_a = self.config.dome_inner_radius
+        side_b = self.config.telescope_height_offset
+        angle_a_rad = math.radians(elevation + 90)
+        angle_b_rad = math.asin(side_b / side_a * math.sin(angle_a_rad))
+        angle_c_rad = math.pi - angle_b_rad - angle_a_rad
+        return side_a * math.sin(angle_c_rad) / math.sin(angle_a_rad)
+
+    def compute_vignetted_by_azimuth(
+        self, *, dome_azimuth, telescope_azimuth, telescope_elevation
+    ):
+        """Compute the ``azimuth`` field of the telescopeVignetted event.
+
+        Parameters
+        ----------
+        dome_azimuth : `float` | None
+            Dome current azimuth (deg); None if unknown.
+        telescope_azimuth : `float` | None
+            Telescope current azimuth (deg); None if unknown.
+        telescope_elevation : `float` | None
+            Telescope current elevation (deg); None if unknown.
+
+        Returns
+        -------
+        azimuth : `TelescopeVignetted`
+            Telescope vignetted by azimuth mismatch between telescope and dome.
+        """
+        if (
+            dome_azimuth is None
+            or telescope_azimuth is None
+            or telescope_elevation is None
+        ):
+            return TelescopeVignetted.UNKNOWN
+
+        abs_azimuth_difference = abs(
+            utils.angle_diff(dome_azimuth, telescope_azimuth).deg
+        )
+        distance_to_dome = self.compute_distance_to_dome(telescope_elevation)
+        scaled_abs_azimuth_difference = (
+            abs_azimuth_difference
+            * math.cos(math.radians(telescope_elevation))
+            * self.distance_to_dome_at_horizon
+            / distance_to_dome
+        )
+        if scaled_abs_azimuth_difference < self.config.azimuth_vignette_partial:
+            return TelescopeVignetted.NO
+        elif scaled_abs_azimuth_difference < self.config.azimuth_vignette_full:
+            return TelescopeVignetted.PARTIALLY
+        return TelescopeVignetted.FULLY
+
+    def compute_vignetted_by_shutter(
+        self, *, dome_dropout_door_state, dome_main_door_state, telescope_elevation
+    ):
+        """Compute the ``shutter`` field of the telescopeVignetted event.
+
+        Parameters
+        ----------
+        dome_dropout_door_state : `ShutterDoorState` | None
+            Dome dropout door state; None if unknown.
+        dome_main_door_state : `ShutterDoorState` | None
+            Dome main door state; None if unknown.
+        telescope_elevation : `float` | None
+            Telescope current elevation (deg); None if unknown.
+
+        Returns
+        -------
+        shutter : `TelescopeVignetted`
+            Telescope vignetted by shutter.
+        """
+        if dome_dropout_door_state is None or dome_main_door_state is None:
+            return TelescopeVignetted.UNKNOWN
+        elif (
+            dome_dropout_door_state == ShutterDoorState.OPENED
+            and dome_main_door_state == ShutterDoorState.OPENED
+        ):
+            return TelescopeVignetted.NO
+        elif (
+            dome_dropout_door_state == ShutterDoorState.CLOSED
+            and dome_main_door_state == ShutterDoorState.CLOSED
+        ):
+            return TelescopeVignetted.FULLY
+        elif (
+            dome_dropout_door_state == ShutterDoorState.CLOSED
+            and dome_main_door_state == ShutterDoorState.OPENED
+        ):
+            # The dropout door is closed and the main door is opened,
+            # so vignetting depends on telescope elevation.
+            if telescope_elevation is None:
+                return TelescopeVignetted.UNKNOWN
+            elif telescope_elevation > self.config.dropout_door_vignette_partial:
+                return TelescopeVignetted.NO
+            elif telescope_elevation > self.config.dropout_door_vignette_full:
+                return TelescopeVignetted.PARTIALLY
+            return TelescopeVignetted.FULLY
+        return TelescopeVignetted.UNKNOWN
+
+    def compute_vignetted_by_any(self, *, azimuth, shutter):
+        """Compute the ``vignetted`` field of the telescopeVignetted event."""
+        if (
+            azimuth == TelescopeVignetted.UNKNOWN
+            or shutter == TelescopeVignetted.UNKNOWN
+        ):
+            return TelescopeVignetted.UNKNOWN
+        elif azimuth == TelescopeVignetted.NO and shutter == TelescopeVignetted.NO:
+            return TelescopeVignetted.NO
+        elif azimuth == TelescopeVignetted.FULLY or shutter == TelescopeVignetted.FULLY:
+            return TelescopeVignetted.FULLY
+        return TelescopeVignetted.PARTIALLY
+
     async def do_setFollowingMode(self, data):
         """Handle the setFollowingMode command."""
         self.assert_enabled()
@@ -213,10 +378,116 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
                     self.move_dome_azimuth(desired_dome_azimuth)
                 )
 
+    def get_dome_azimuth(self):
+        """Get current dome azimuth (deg), or None if unavailable."""
+        dome_position = self.dome_remote.tel_position.get()
+        if dome_position is None:
+            return None
+        return dome_position.azimuthPosition
+
+    def get_dome_dropout_door_state(self):
+        """Get current dome dropout door state, or None if unavailable."""
+        dome_dropout_door_state = self.dome_remote.evt_dropoutDoorState.get()
+        if dome_dropout_door_state is None:
+            return None
+        return dome_dropout_door_state.state
+
+    def get_dome_main_door_state(self):
+        """Get current dome main door state, or None if unavailable."""
+        dome_main_door_state = self.dome_remote.evt_mainDoorState.get()
+        if dome_main_door_state is None:
+            return None
+        return dome_main_door_state.state
+
+    def get_dome_summary_state(self):
+        """Get ATDome summary state, or None if unavailable."""
+        dome_state = self.dome_remote.evt_summaryState.get()
+        if dome_state is None:
+            return None
+        return dome_state.summaryState
+
+    def get_telescope_azimuth_elevation(self):
+        """Get current azimuth and elevation of the telescope (deg).
+
+        Return (None, None) if unavailable.
+        """
+        telescope_encoders = self.atmcs_remote.tel_mount_AzEl_Encoders.get()
+        if telescope_encoders is None:
+            return (None, None)
+        return (
+            telescope_encoders.azimuthCalculatedAngle[-1],
+            telescope_encoders.elevationCalculatedAngle[-1],
+        )
+
+    def get_telescope_summary_state(self):
+        """Get ATMCS summary state, or None if unavailable."""
+        telescope_state = self.atmcs_remote.evt_summaryState.get()
+        if telescope_state is None:
+            return None
+        return telescope_state.summaryState
+
     async def handle_summary_state(self):
         if not self.summary_state == salobj.State.ENABLED:
             self.move_dome_azimuth_task.cancel()
             await self.evt_followingMode.set_write(enabled=False)
+        if self.disabled_or_enabled:
+            if self.report_vignetted_task.done():
+                self.report_vignetted_task = asyncio.create_task(
+                    self.report_vignetted_loop()
+                )
+        else:
+            self.report_vignetted_task.cancel()
+            await self.evt_telescopeVignetted.set_write(
+                vignetted=TelescopeVignetted.UNKNOWN,
+                azimuth=TelescopeVignetted.UNKNOWN,
+                shutter=TelescopeVignetted.UNKNOWN,
+            )
+
+    async def report_vignetted_loop(self):
+        """Poll ATMCS and ATDome topics to report telescopeVignetted event."""
+        self.log.info("report_vignetted_loop begins")
+        ok_states = frozenset((salobj.State.DISABLED, salobj.State.ENABLED))
+        try:
+            while True:
+                dome_state = self.get_dome_summary_state()
+                telescope_state = self.get_telescope_summary_state()
+                if dome_state not in ok_states or telescope_state not in ok_states:
+                    azimuth = TelescopeVignetted.UNKNOWN
+                    shutter = TelescopeVignetted.UNKNOWN
+                else:
+                    (
+                        telescope_azimuth,
+                        telescope_elevation,
+                    ) = self.get_telescope_azimuth_elevation()
+                    dome_azimuth = self.get_dome_azimuth()
+                    dome_dropout_door_state = self.get_dome_dropout_door_state()
+                    dome_main_door_state = self.get_dome_main_door_state()
+                    azimuth = self.compute_vignetted_by_azimuth(
+                        dome_azimuth=dome_azimuth,
+                        telescope_azimuth=telescope_azimuth,
+                        telescope_elevation=telescope_elevation,
+                    )
+                    shutter = self.compute_vignetted_by_shutter(
+                        dome_dropout_door_state=dome_dropout_door_state,
+                        dome_main_door_state=dome_main_door_state,
+                        telescope_elevation=telescope_elevation,
+                    )
+                vignetted = self.compute_vignetted_by_any(
+                    azimuth=azimuth, shutter=shutter
+                )
+                await self.evt_telescopeVignetted.set_write(
+                    vignetted=vignetted, azimuth=azimuth, shutter=shutter
+                )
+                await asyncio.sleep(VIGNETTING_MONITOR_INTERVAL)
+        except asyncio.CancelledError:
+            self.log.info("report_vignetted_loop ends")
+        except Exception as e:
+            self.log.exception(f"report_vignetted_loop failed: {e!r}")
+        await self.evt_telescopeVignetted.set_write(
+            vignetted=TelescopeVignetted.UNKNOWN,
+            azimuth=TelescopeVignetted.UNKNOWN,
+            shutter=TelescopeVignetted.UNKNOWN,
+        )
 
     async def move_dome_azimuth(self, desired_dome_azimuth):
         """Start moving the dome in azimuth.
@@ -233,6 +504,11 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
     async def start(self):
         await super().start()
         await self.dome_remote.start_task
+        await self.evt_telescopeVignetted.set_write(
+            vignetted=TelescopeVignetted.UNKNOWN,
+            azimuth=TelescopeVignetted.UNKNOWN,
+            shutter=TelescopeVignetted.UNKNOWN,
+        )
 
 
 def run_atdometrajectory():

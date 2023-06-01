@@ -1,3 +1,9 @@
 algorithm_name: "simple"
 simple:
   max_delta_azimuth: 7.1
+azimuth_vignette_partial: 11.2
+azimuth_vignette_full: 26.2
+dropout_door_vignette_partial: 28.2
+dropout_door_vignette_full: 16.2
+dome_inner_radius: 5050.5
+telescope_height_offset: 1010.1
