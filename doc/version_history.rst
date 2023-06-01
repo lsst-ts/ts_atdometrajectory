@@ -6,7 +6,7 @@
 Version History
 ###############
 
-v1.10.1
+v1.11.0
 -------
 
 * `CONFIG_SCHEMA`: update to v4.
