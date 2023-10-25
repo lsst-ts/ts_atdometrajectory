@@ -43,6 +43,10 @@ RAD_PER_DEG = math.pi / 180
 class ATDomeTrajectoryTestCase(
     salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase
 ):
+    @classmethod
+    def setUpClass(cls):
+        cls._randomize_topic_subname = True
+    
     @contextlib.asynccontextmanager
     async def make_csc(
         self,
