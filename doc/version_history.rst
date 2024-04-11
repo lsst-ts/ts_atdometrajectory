@@ -6,6 +6,18 @@
 Version History
 ###############
 
+v1.11.1
+-------
+
+* Update the version of ts-conda-build to 0.4 in the conda recipe.
+
+Requirements:
+
+* ts_salobj 7.2
+* ts_idl 2
+* ts_utils 1
+* IDL files for ATDome, ATDomeTrajectory and ATMCS built from ts_xml 16
+
 v1.11.0
 -------
 
