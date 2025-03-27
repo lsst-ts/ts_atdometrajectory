@@ -29,8 +29,8 @@ import unittest
 import pytest
 import yaml
 from lsst.ts import atdometrajectory, salobj, utils
-from lsst.ts.idl.enums.ATDome import AzimuthCommandedState, ShutterDoorState
-from lsst.ts.idl.enums.ATDomeTrajectory import TelescopeVignetted
+from lsst.ts.xml.enums.ATDome import AzimuthCommandedState, ShutterDoorState
+from lsst.ts.xml.enums.ATDomeTrajectory import TelescopeVignetted
 
 NODATA_TIMEOUT = 0.5
 STD_TIMEOUT = 5  # standard command timeout (sec)
