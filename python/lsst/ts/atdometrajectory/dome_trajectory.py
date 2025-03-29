@@ -25,8 +25,8 @@ import math
 
 import yaml
 from lsst.ts import salobj, simactuators, utils
-from lsst.ts.idl.enums.ATDome import AzimuthCommandedState, ShutterDoorState
-from lsst.ts.idl.enums.ATDomeTrajectory import TelescopeVignetted
+from lsst.ts.xml.enums.ATDome import AzimuthCommandedState, ShutterDoorState
+from lsst.ts.xml.enums.ATDomeTrajectory import TelescopeVignetted
 
 from . import __version__
 from .base_algorithm import AlgorithmRegistry

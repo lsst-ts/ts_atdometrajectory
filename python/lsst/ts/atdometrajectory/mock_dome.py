@@ -24,7 +24,7 @@ import asyncio
 import math
 
 from lsst.ts import salobj, utils
-from lsst.ts.idl.enums.ATDome import AzimuthCommandedState, ShutterDoorState
+from lsst.ts.xml.enums.ATDome import AzimuthCommandedState, ShutterDoorState
 
 
 class MockDome(salobj.BaseCsc):
