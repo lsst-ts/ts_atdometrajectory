@@ -6,6 +6,12 @@
 Version History
 ###############
 
+v1.11.2
+-------
+
+* Switch from ts-idl to ts-xml in conda recipe.
+* Change idl to xml in imports.
+
 v1.11.1
 -------
 
