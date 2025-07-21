@@ -6,6 +6,11 @@
 Version History
 ###############
 
+v1.11.3
+-------
+
+* Fix version module import.
+
 v1.11.2
 -------
 
