@@ -6,6 +6,11 @@
 Version History
 ###############
 
+v1.12.0
+-------
+
+* Made vignetting reporting also work when CSC in DISABLED.
+
 v1.11.3
 -------
 

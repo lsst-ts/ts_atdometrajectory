@@ -126,6 +126,9 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         self.report_vignetted_task = utils.make_done_future()
         self.distance_to_dome_at_horizon = None
 
+        self.algorithm = None
+        self.config = None
+
     @staticmethod
     def get_config_pkg():
         return "ts_config_attcs"
@@ -413,7 +416,7 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
         """
         telescope_encoders = self.atmcs_remote.tel_mount_AzEl_Encoders.get()
         if telescope_encoders is None:
-            return (None, None)
+            return None, None
         return (
             telescope_encoders.azimuthCalculatedAngle[-1],
             telescope_encoders.elevationCalculatedAngle[-1],
@@ -426,22 +429,36 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
             return None
         return telescope_state.summaryState
 
-    async def handle_summary_state(self):
-        if not self.summary_state == salobj.State.ENABLED:
-            self.move_dome_azimuth_task.cancel()
-            await self.evt_followingMode.set_write(enabled=False)
-        if self.disabled_or_enabled:
-            if self.report_vignetted_task.done():
-                self.report_vignetted_task = asyncio.create_task(
-                    self.report_vignetted_loop()
-                )
-        else:
-            self.report_vignetted_task.cancel()
-            await self.evt_telescopeVignetted.set_write(
-                vignetted=TelescopeVignetted.UNKNOWN,
-                azimuth=TelescopeVignetted.UNKNOWN,
-                shutter=TelescopeVignetted.UNKNOWN,
+    async def end_start(self, data):
+        """Begin do_start; called before state changes.
+
+        Parameters
+        ----------
+        data : `DataType`
+            Command data
+        """
+        if self.report_vignetted_task.done():
+            self.report_vignetted_task = asyncio.create_task(
+                self.report_vignetted_loop()
             )
+        await self.evt_followingMode.set_write(enabled=False)
+
+    async def begin_standby(self, data) -> None:
+        """Begin do_standby; called before the state changes.
+
+        Parameters
+        ----------
+        data : `DataType`
+            Command data
+        """
+        self.move_dome_azimuth_task.cancel()
+        self.report_vignetted_task.cancel()
+        await self.evt_followingMode.set_write(enabled=False)
+        await self.evt_telescopeVignetted.set_write(
+            vignetted=TelescopeVignetted.UNKNOWN,
+            azimuth=TelescopeVignetted.UNKNOWN,
+            shutter=TelescopeVignetted.UNKNOWN,
+        )
 
     async def report_vignetted_loop(self):
         """Poll ATMCS and ATDome topics to report telescopeVignetted event."""
