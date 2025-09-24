@@ -164,6 +164,11 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
     async def close_tasks(self):
         self.move_dome_azimuth_task.cancel()
         self.report_vignetted_task.cancel()
+        try:
+            await self.report_vignetted_task
+        except asyncio.CancelledError:
+            # Ignore because deliberately cancelled.
+            pass
         await self.evt_telescopeVignetted.set_write(
             vignetted=TelescopeVignetted.UNKNOWN,
             azimuth=TelescopeVignetted.UNKNOWN,
@@ -429,6 +434,12 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
     async def handle_summary_state(self):
         if not self.summary_state == salobj.State.ENABLED:
             self.move_dome_azimuth_task.cancel()
+            self.report_vignetted_task.cancel()
+            try:
+                await self.report_vignetted_task
+            except asyncio.CancelledError:
+                # Ignore because deliberately cancelled.
+                pass
             await self.evt_followingMode.set_write(enabled=False)
         if self.disabled_or_enabled:
             if self.report_vignetted_task.done():
@@ -437,6 +448,11 @@ class ATDomeTrajectory(salobj.ConfigurableCsc):
                 )
         else:
             self.report_vignetted_task.cancel()
+            try:
+                await self.report_vignetted_task
+            except asyncio.CancelledError:
+                # Ignore because deliberately cancelled.
+                pass
             await self.evt_telescopeVignetted.set_write(
                 vignetted=TelescopeVignetted.UNKNOWN,
                 azimuth=TelescopeVignetted.UNKNOWN,
