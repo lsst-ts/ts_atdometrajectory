@@ -6,6 +6,11 @@
 Version History
 ###############
 
+v1.12.1
+-------
+
+* Updated ts-conda-build dependency version and conda build string.
+
 v1.12.0
 -------
 
