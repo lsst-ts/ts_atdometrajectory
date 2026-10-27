@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=64", "setuptools-scm>=8"]
+requires = ["setuptools", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,7 +7,7 @@ name = "ts_atdometrajectory"
 description = "A CSC to make the auxiliary telescope dome track the telescope at the Vera C. Rubin Observatory."
 license = { text = "GPL" }
 classifiers = ["Programming Language :: Python :: 3"]
-urls = { documentation = "https://ts-atdometrajectory.lsst.io/", repository = "https://github.com/lsst-ts/ts_atdometrajectory" }
+urls = { documentation = "https://ts-atdometrajectory.lsst.io/", source_code = "https://github.com/lsst-ts/ts_atdometrajectory" }
 dynamic = ["version"]
 
 [tool.setuptools.dynamic]
