@@ -1,6 +1,6 @@
-# This file is part of ts_ATDomeTrajectory.
+# This file is part of ts_atdometrajectory.
 #
-# Developed for Vera C. Rubin Observatory Telescope and Site Systems.
+# Developed for the Vera C. Rubin Observatory Telescope and Site Systems.
 # This product includes software developed by the LSST Project
 # (https://www.lsst.org).
 # See the COPYRIGHT file at the top-level directory of this distribution
@@ -13,19 +13,17 @@
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 __all__ = ["CONFIG_SCHEMA"]
 
 import yaml
 
-CONFIG_SCHEMA = yaml.safe_load(
-    """$schema: http://json-schema.org/draft-07/schema#
+CONFIG_SCHEMA = yaml.safe_load("""$schema: http://json-schema.org/draft-07/schema#
 $id: https://github.com/lsst-ts/ts_atdometrajectory/blob/main/python/lsst/ts/atdometrajectory/config_schema.py
 # title must end with one or more spaces followed by the schema version, which must begin with "v"
 title: ATDomeTrajectory v4
@@ -92,5 +90,4 @@ required:
 - dome_inner_radius
 - telescope_height_offset
 additionalProperties: false
-"""
-)
+""")

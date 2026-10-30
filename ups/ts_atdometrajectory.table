@@ -1,6 +1,6 @@
-setupRequired(ts_idl)
 setupRequired(ts_salobj)
 setupRequired(ts_simactuators)
+setupRequired(ts_xml)
 setupRequired(ts_config_attcs)
 
 envPrepend(PATH, ${PRODUCT_DIR}/bin)
